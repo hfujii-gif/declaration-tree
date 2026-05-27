@@ -1,0 +1,20 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --color-bg: #1B3A2D;
+  --color-accent: #4CAF82;
+  --color-text: #FFFFFF;
+  --color-error: #EF4444;
+  --color-gray: #9CA3AF;
+}
+
+body {
+  font-family: 'Arial', sans-serif;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  overflow: hidden;
+}

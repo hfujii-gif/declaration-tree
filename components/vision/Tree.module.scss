@@ -1,0 +1,23 @@
+// 葉を並べるコンテナ。#10 では中央に集めて折り返す素朴なレイアウト。
+// 木の成長段階に応じた配置・座標計算は #11 のスコープ。
+.tree {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  height: 100%;
+  padding: 40px;
+  overflow: hidden;
+}
+
+// 葉1枚。葉らしい非対称の角丸で表現する。色はCSS変数を使用。
+.leaf {
+  display: block;
+  width: 24px;
+  height: 24px;
+  background-color: var(--color-accent);
+  border-radius: 0 100% 0 100%;
+  transform: rotate(45deg);
+}

@@ -84,7 +84,7 @@ curl -s -X POST $BASE_URL/api/declare \
 # ❌ 異常系：51文字（50文字を超える）
 curl -s -X POST $BASE_URL/api/declare \
   -H 'Content-Type: application/json' \
-  -d '{"text": "あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをんあ"}' | jq
+  -d '{"text": "あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをんあいうえお"}' | jq
 # 期待：{"success": false, "message": "50文字以内で入力してください"} + HTTP 400
 
 # ❌ 異常系：GETリクエスト

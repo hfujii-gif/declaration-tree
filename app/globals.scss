@@ -10,6 +10,24 @@
   --color-text: #FFFFFF;
   --color-error: #EF4444;
   --color-gray: #9CA3AF;
+
+  /* /vision 背景（空・大地・雲・幹） */
+  --color-sky-top: #87CEEB;
+  --color-sky-bottom: #D6F0F5;
+  --color-ground: #6B8E5A;
+  --color-cloud: #FFFFFF;
+  --color-trunk: #5D4037;
+  --color-trunk-light: #8A6A52;
+  --color-trunk-dark: #3E2A20;
+  --color-sun: #FFE39A;
+
+  /* /vision テキスト葉の色バリエーション */
+  --color-leaf-1: #4CAF82;
+  --color-leaf-2: #6FCF97;
+  --color-leaf-3: #3E8E5E;
+  --color-leaf-4: #8BC34A;
+  /* 濃い緑（大地の奥行き表現に使用） */
+  --color-leaf-deep: #2F6B45;
 }
 
 body {

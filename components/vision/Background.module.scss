@@ -1,0 +1,128 @@
+// 背景レイヤー全体。空のグラデーションを敷く。
+.background {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: linear-gradient(to bottom, var(--color-sky-top) 0%, var(--color-sky-bottom) 70%);
+  overflow: hidden;
+}
+
+// 太陽（右上にやわらかく光る）。
+.sun {
+  position: absolute;
+  top: 8%;
+  right: 10%;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--color-sun) 0%, rgba(255, 227, 154, 0.6) 45%, rgba(255, 227, 154, 0) 72%);
+}
+
+// 大地（画面下部）。手前ほど濃い緑のグラデーションで奥行きを出す。
+.ground {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 22%;
+  background: linear-gradient(to bottom, var(--color-leaf-2) 0%, var(--color-ground) 45%, var(--color-leaf-deep) 100%);
+  border-top-left-radius: 50% 18%;
+  border-top-right-radius: 50% 18%;
+}
+
+// 雲をまとめるレイヤー。
+.clouds {
+  position: absolute;
+  inset: 0;
+}
+
+// 雲1つ。横方向に無限ループで流れる。位置・サイズ・速度を個体ごとに変える。
+.cloud {
+  position: absolute;
+  background-color: var(--color-cloud);
+  border-radius: 50%;
+  opacity: 0.85;
+  filter: blur(2px);
+
+  // 雲のもこもこを擬似要素で表現する。
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    background-color: var(--color-cloud);
+    border-radius: 50%;
+  }
+}
+
+@keyframes drift {
+  from {
+    transform: translateX(-25vw);
+  }
+  to {
+    transform: translateX(125vw);
+  }
+}
+
+.cloud1 {
+  top: 12%;
+  width: 160px;
+  height: 50px;
+  animation: drift 60s linear infinite;
+
+  &::before {
+    width: 80px;
+    height: 80px;
+    top: -34px;
+    left: 24px;
+  }
+  &::after {
+    width: 60px;
+    height: 60px;
+    top: -20px;
+    left: 84px;
+  }
+}
+
+.cloud2 {
+  top: 26%;
+  width: 110px;
+  height: 36px;
+  opacity: 0.7;
+  animation: drift 90s linear infinite;
+  animation-delay: -30s;
+
+  &::before {
+    width: 56px;
+    height: 56px;
+    top: -24px;
+    left: 18px;
+  }
+  &::after {
+    width: 42px;
+    height: 42px;
+    top: -14px;
+    left: 60px;
+  }
+}
+
+.cloud3 {
+  top: 6%;
+  width: 200px;
+  height: 60px;
+  opacity: 0.6;
+  animation: drift 120s linear infinite;
+  animation-delay: -75s;
+
+  &::before {
+    width: 100px;
+    height: 100px;
+    top: -44px;
+    left: 30px;
+  }
+  &::after {
+    width: 74px;
+    height: 74px;
+    top: -28px;
+    left: 110px;
+  }
+}

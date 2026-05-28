@@ -1,0 +1,110 @@
+// テキスト葉のレイヤー。木より前面、カウンターより背面に置く。
+.layer {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+// テキスト葉1枚。横向きの木の葉として描く。
+// clip-path で葉のシルエットと縁の虫食い穴（端のへこみ）を作り、葉脈・茎・落ち影で立体感を出す。
+// 座標・色・サイズ・回転はインラインスタイルで個別指定する。
+.leaf {
+  position: absolute;
+  // 50文字でも全文が読めるよう幅広にする。幅は vw 基準でスロット間隔と整合させ重なりを防ぐ。
+  width: 24vw;
+  max-width: 460px;
+  min-width: 220px;
+  // 文字数が少なくても葉が細長くならないよう最小の高さを確保し、文字を上下中央に置く。
+  min-height: 128px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  // 左右の余白を広めにとり、葉の先端・付け根・縁の虫食いに文字がかからないようにする。
+  padding: 30px 46px;
+  color: var(--color-text);
+  font-size: 1rem;
+  font-weight: bold;
+  line-height: 1.4;
+  text-align: center;
+  // 葉の色が薄めでも全文が読めるよう影を付ける。
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
+  // 光が左上から当たる陰影を、各葉のベース色に重ねる。
+  background-image: linear-gradient(
+    150deg,
+    rgba(255, 255, 255, 0.3) 0%,
+    rgba(255, 255, 255, 0) 42%,
+    rgba(0, 0, 0, 0.2) 100%
+  );
+  // clip-path を使うため、box-shadow ではなく drop-shadow（シルエットに沿う影）を使う。
+  filter: drop-shadow(0 8px 10px rgba(0, 0, 0, 0.3));
+  // フェードイン→維持→フェードアウト。duration はインラインで LEAF_DISPLAY_MS を渡す。
+  animation-name: leafLife;
+  animation-timing-function: ease;
+  animation-fill-mode: both;
+}
+
+.leafText {
+  display: block;
+  position: relative;
+  z-index: 1;
+  word-break: break-word;
+}
+
+// 葉脈（主脈＋枝分かれする側脈）。葉のシルエットいっぱいに引き伸ばす。
+.veins {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+
+.veinLines path {
+  fill: none;
+  stroke: rgba(0, 0, 0, 0.22);
+  stroke-width: 1.2;
+  stroke-linecap: round;
+  // 縦横で引き伸ばしても線幅を一定に保つ。
+  vector-effect: non-scaling-stroke;
+}
+
+// 葉のシルエット（横向き・先端は右）。縁に虫食いのへこみを入れる。
+// 文字が収まるよう上下を広め（ふっくら）にとり、虫食いは浅めにする。
+.shape0 {
+  clip-path: polygon(
+    0% 50%, 5% 40%, 14% 24%, 28% 12%, 44% 7%, 54% 8%, 57% 18%, 61% 8%, 74% 10%, 86% 20%,
+    95% 34%, 100% 50%, 95% 66%, 86% 80%, 74% 90%, 61% 92%, 57% 82%, 54% 92%, 44% 93%, 28% 88%,
+    14% 76%, 5% 60%
+  );
+}
+.shape1 {
+  clip-path: polygon(
+    0% 50%, 5% 40%, 14% 24%, 26% 12%, 40% 7%, 43% 18%, 47% 8%, 60% 7%, 74% 11%, 86% 21%,
+    95% 35%, 100% 50%, 95% 65%, 86% 79%, 74% 89%, 60% 93%, 47% 92%, 43% 82%, 40% 92%, 26% 88%,
+    14% 76%, 5% 60%
+  );
+}
+.shape2 {
+  clip-path: polygon(
+    0% 50%, 5% 40%, 15% 23%, 32% 11%, 50% 7%, 60% 8%, 64% 19%, 69% 8%, 82% 13%, 93% 30%,
+    100% 50%, 93% 68%, 82% 86%, 64% 92%, 50% 93%, 32% 89%, 15% 76%, 5% 60%
+  );
+}
+
+// 位置・回転・サイズはインラインの transform で指定しているため、
+// ここでは transform を触らず opacity だけをアニメーションさせる。
+@keyframes leafLife {
+  0% {
+    opacity: 0;
+  }
+  6% {
+    opacity: 1;
+  }
+  88% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}

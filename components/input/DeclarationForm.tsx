@@ -31,8 +31,10 @@ export default function DeclarationForm() {
   useEffect(() => {
     const ngWordsRef = ref(db, 'settings/ngWords')
     onValue(ngWordsRef, (snapshot) => {
-      const value = snapshot.val() as string[] | null
-      setFirebaseNgWords(value ?? [])
+      // RTDB は配列を疎なときオブジェクトで返すことがあり、管理画面(#11)が配列以外で書き込む
+      // 可能性もあるため、配列以外は [] にフォールバックしてスプレッド時のクラッシュを防ぐ。
+      const value: unknown = snapshot.val()
+      setFirebaseNgWords(Array.isArray(value) ? (value as string[]) : [])
     })
     return () => off(ngWordsRef)
   }, [])
@@ -86,7 +88,11 @@ export default function DeclarationForm() {
           ref={textareaRef}
           className={`${styles.textarea} ${hasNgWord || isOverLimit ? styles.textareaError : ''}`}
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          onChange={(e) => {
+            setText(e.target.value)
+            // 送信失敗の通知は再入力を始めたら消す（古いエラーが残り続けないように）。
+            if (errorMessage) setErrorMessage('')
+          }}
           placeholder="例：毎日30分歩く"
           rows={3}
         />

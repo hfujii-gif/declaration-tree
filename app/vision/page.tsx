@@ -24,7 +24,9 @@ export default function VisionPage() {
         }
         const list: Declaration[] = Object.entries(data)
           .map(([id, val]) => ({ id, ...(val as Omit<Declaration, 'id'>) }))
-          .filter((d) => d.isVisible) // 表示対象（isVisible: true）のみ描画・カウントする
+          // 表示対象かつ text が有効な宣言のみ描画・カウントする。
+          // text 欠落などの不正エントリで中身のない葉が出るのを防ぐ（長時間稼働の保険）。
+          .filter((d) => d.isVisible && typeof d.text === 'string')
           .sort((a, b) => a.timestamp - b.timestamp)
         setDeclarations(list)
       },
@@ -40,7 +42,7 @@ export default function VisionPage() {
   return (
     <div className={styles.container}>
       <Tree declarations={declarations} />
-      <div className={styles.counter} aria-live="polite">
+      <div className={styles.counter}>
         {declarations.length.toLocaleString()}人が宣言しました
       </div>
     </div>

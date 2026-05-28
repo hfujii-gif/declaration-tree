@@ -27,8 +27,8 @@ CLAUDE.md・implementation.md は「Firebase操作は `lib/firebase.ts` に集�
 - [x] プラン作成中
 - [x] レビュー待ち
 - [x] 承認済み → 実装開始可能
-- [x] 実装完了（build/tsc/lint通過。書き込み接続確認は実認証情報での手動検証が残）
-- [ ] PR作成済み
+- [x] 実装完了（build/tsc/lint通過。書き込み・削除をコンソールで目視確認済み）
+- [x] PR作成済み（#24）
 
 ---
 

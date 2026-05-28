@@ -6,7 +6,7 @@ import type { DeclareRequestBody } from '@/types'
 
 // 宣言の受付。POSTのみ受け付け、サーバ側でバリデーション後に
 // Firebase Realtime Database の declarations/ へ書き込む。
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const body: DeclareRequestBody = await request.json()
     const { text } = body
@@ -19,8 +19,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 文字数上限チェック（MAX_CHARS を使用）
-    if (text.length > MAX_CHARS) {
+    // 文字数上限チェック（保存値と判定を揃えるため trim 後の長さで比較する）
+    if (text.trim().length > MAX_CHARS) {
       return NextResponse.json(
         { success: false, message: `${MAX_CHARS}文字以内で入力してください` },
         { status: 400 }
@@ -54,6 +54,6 @@ export async function POST(request: NextRequest) {
 }
 
 // POST以外は許可しない（PUT/DELETE/PATCH は Next.js が自動で 405 を返す）
-export async function GET() {
+export async function GET(): Promise<NextResponse> {
   return NextResponse.json({ message: 'Method Not Allowed' }, { status: 405 })
 }

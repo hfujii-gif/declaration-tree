@@ -1,18 +1,32 @@
+import { forwardRef } from 'react'
 import styles from './CenterTree.module.scss'
 
 type CenterTreeProps = {
   // 成長段階（0〜4）。累計がマイルストーンを超えるごとに上がる。
   stage: number
+  // 10,000人達成後の満開状態。true で葉色が明るくなり、キャノピーに金色の発光をまとう（#11）。
+  // 満開は count>=10000 由来の静的状態。フィナーレ演出は lib/animations.ts の playFullBloom が担当する。
+  bloomed?: boolean
 }
 
 // 中央に常設する枝分かれの木。stage が上がるほど大きく・葉が増える。
 // 葉のかたまりは単色（濃緑）のデコボコした有機的なシルエットの塊として描く。
 // 単色にすることで重なりの継ぎ目が出ず、一枚の塊として見える。
 // サイズ/葉の量の変化は CSS の transition で滑らかに行う。
-// 祝祭的なパルスや達成テキストなどの演出は #11 のスコープ。
-export default function CenterTree({ stage }: CenterTreeProps) {
+// 祝祭的なパルスや達成テキストなどの演出は #11（lib/animations.ts）が担当する。
+// ref は演出（パルス・満開ポップ）の対象を掴むため親へ公開する。
+const CenterTree = forwardRef<HTMLDivElement, CenterTreeProps>(function CenterTree(
+  { stage, bloomed = false },
+  ref
+) {
   return (
-    <div className={styles.treeWrap} data-stage={stage} aria-hidden="true">
+    <div
+      ref={ref}
+      className={styles.treeWrap}
+      data-stage={stage}
+      data-bloomed={bloomed}
+      aria-hidden="true"
+    >
       <svg className={styles.tree} viewBox="0 0 200 260" xmlns="http://www.w3.org/2000/svg">
         <defs>
           {/* 幹・枝の木目グラデーション（円柱状の陰影） */}
@@ -49,7 +63,8 @@ export default function CenterTree({ stage }: CenterTreeProps) {
         </g>
 
         {/* 葉のかたまり（一枚の塊）。stage が上がると、この中央の塊そのものが大きく育つ。
-            単色のデコボコしたシルエットを重ねて継ぎ目のない塊にし、左右下のふくらみで枝先を覆う。 */}
+            単色のデコボコしたシルエットを重ねて継ぎ目のない塊にし、左右下のふくらみで枝先を覆う。
+            満開時（data-bloomed）は葉色が明るくなり、金色の発光をまとう。 */}
         <g className={styles.canopy} filter="url(#leafShadow)">
           {/* 中央の塊 */}
           <path
@@ -70,4 +85,6 @@ export default function CenterTree({ stage }: CenterTreeProps) {
       </svg>
     </div>
   )
-}
+})
+
+export default CenterTree

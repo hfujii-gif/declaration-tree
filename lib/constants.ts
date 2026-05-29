@@ -18,3 +18,7 @@ export const LEAF_DISPLAY_MS = 30000
 // 50文字でも全文が読める大きさの葉を、画面外にはみ出さず重ならず並べるため、3列×3行=9枚とする。
 // この数を超えて宣言が届いた場合は最古の葉を消して新しい葉を表示する（重なり回避）。
 export const MAX_VISIBLE_LEAVES = 9
+
+// 同時表示が上限に達した状態で新着が来たとき、最古の葉を即時消去せず短くフェードアウトさせる時間（ミリ秒）。
+// ※ components/vision/LeafLayer.module.scss の .exiting アニメーション時間と一致させること。
+export const LEAF_EVICT_FADE_MS = 400

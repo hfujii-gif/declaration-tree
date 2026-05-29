@@ -1,21 +1,23 @@
 // ビジョン画面全体のコンテナ。大型モニターで全画面表示する。
+// 子レイヤー（背景・木・葉・カウンター）の重ね順の基準となるスタッキングコンテキスト。
 .container {
   position: relative;
   width: 100vw;
   height: 100vh;
-  background-color: var(--color-bg);
   overflow: hidden;
 }
 
-// 画面下部に常時表示する累計カウンター。
+// 画面下部に常時表示する累計カウンター。最前面に置く。
 .counter {
   position: absolute;
   bottom: 40px;
   left: 50%;
   transform: translateX(-50%);
+  z-index: 3;
   color: var(--color-text);
   font-size: 2.5rem;
   font-weight: bold;
   text-align: center;
   white-space: nowrap;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
 }

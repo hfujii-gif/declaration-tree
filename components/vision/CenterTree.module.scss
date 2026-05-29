@@ -1,0 +1,88 @@
+// 木の配置。画面中央下に立たせ、stage に応じて下端を基準に拡大する。
+.treeWrap {
+  position: absolute;
+  left: 50%;
+  bottom: 14%;
+  z-index: 1;
+  transform-origin: bottom center;
+  // 段階成長を滑らかに見せる。
+  transition: transform 1.2s ease;
+  // 木全体のサイズは一定にし、stage による成長は葉の塊（.canopy）の拡大で表現する。
+  transform: translateX(-50%) scale(1.05);
+}
+
+.tree {
+  width: 360px;
+  height: 468px;
+  display: block;
+  overflow: visible;
+}
+
+// 地面の落ち影。
+.groundShadow {
+  fill: #000000;
+  opacity: 0.18;
+}
+
+// 幹は木目グラデーションで塗る。
+.trunk {
+  fill: url(#trunkGrad);
+}
+
+// 幹の木目線（細い陰影の筋）。
+.bark {
+  fill: none;
+  stroke: var(--color-trunk-dark);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  opacity: 0.4;
+}
+
+// 木目グラデーションの色（円柱状の陰影）。
+.trunkStopLight {
+  stop-color: var(--color-trunk-light);
+}
+.trunkStopMid {
+  stop-color: var(--color-trunk);
+}
+.trunkStopDark {
+  stop-color: var(--color-trunk-dark);
+}
+
+// 枝は幹と同じ木目色のグラデーションで描く。太→細でテーパーさせる。
+.branches path {
+  fill: none;
+  stroke: url(#trunkGrad);
+  stroke-linecap: round;
+}
+.branchMain {
+  stroke-width: 7;
+}
+.branchTwig {
+  stroke-width: 3.5;
+}
+
+// 葉のかたまりは単色（一番後ろの濃緑）で塗る。重なっても継ぎ目が出ず一枚の塊に見える。
+.clump {
+  fill: var(--color-leaf-3);
+}
+
+// stage が上がるほど、中央の葉の塊そのものが大きく育つ（下端を基準に上・外へ広がる）。
+.canopy {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  transition: transform 1.2s ease;
+  transform: scale(1);
+}
+.treeWrap[data-stage='1'] .canopy {
+  transform: scale(1.12);
+}
+.treeWrap[data-stage='2'] .canopy {
+  transform: scale(1.24);
+}
+.treeWrap[data-stage='3'] .canopy {
+  transform: scale(1.36);
+}
+.treeWrap[data-stage='4'] .canopy {
+  transform: scale(1.48);
+}

@@ -10,3 +10,11 @@ export const MILESTONES = [2500, 5000, 7500, 10000] as const
 
 // 管理画面で参照する環境変数名（process.env[ADMIN_PASSWORD_ENV] で照合）
 export const ADMIN_PASSWORD_ENV = 'ADMIN_PASSWORD'
+
+// /vision のテキスト葉が表示されてから消えるまでの時間（ミリ秒）。累積させず一定時間で消す。
+export const LEAF_DISPLAY_MS = 30000
+
+// /vision で同時に表示できるテキスト葉の最大数（＝配置スロット数）。
+// 50文字でも全文が読める大きさの葉を、画面外にはみ出さず重ならず並べるため、3列×3行=9枚とする。
+// この数を超えて宣言が届いた場合は最古の葉を消して新しい葉を表示する（重なり回避）。
+export const MAX_VISIBLE_LEAVES = 9

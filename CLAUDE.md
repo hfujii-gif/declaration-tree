@@ -128,6 +128,16 @@ NEXT_PUBLIC_FIREBASE_PROJECT_ID=
 ADMIN_PASSWORD=
 ```
 
+### ステージングのパスワード保護（`middleware.ts`）
+
+クライアント確認用のステージングをサイト全体でパスワード保護する（HTTP Basic 認証）。
+**ステージング環境にのみ**以下を設定する。**本番には設定しない**（設定すると参加者・iPad・大型ビジョンがブロックされる）。
+
+```
+STAGING_BASIC_AUTH_PASSWORD=   # 設定するとそのデプロイ全体がBasic認証で保護される（これで有効化）
+STAGING_BASIC_AUTH_USER=       # 任意。未設定なら "client"
+```
+
 ---
 
 ## 定数

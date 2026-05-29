@@ -1,7 +1,7 @@
 // Firebase の初期化と操作関数を集約する単一の入口。
 // 各ファイルで firebase を直接 import・初期化せず、必ずここから import する。
 import { initializeApp, getApps } from 'firebase/app'
-import { getDatabase, ref, push, onValue, onChildAdded, update, set, off, serverTimestamp } from 'firebase/database'
+import { getDatabase, ref, push, get, onValue, onChildAdded, update, set, off, serverTimestamp } from 'firebase/database'
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -24,4 +24,4 @@ if (missingEnv.length > 0) {
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0]
 const db = getDatabase(app)
 
-export { db, ref, push, onValue, onChildAdded, update, set, off, serverTimestamp }
+export { db, ref, push, get, onValue, onChildAdded, update, set, off, serverTimestamp }

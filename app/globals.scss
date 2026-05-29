@@ -31,6 +31,14 @@
 
   /* /vision 10,000人達成後の満開（#11）。葉色を明るくする。 */
   --color-bloom-leaf: #5FB97A;
+
+  /* /admin 管理画面（#12）。白基調・緑(--color-accent)を差し色として使う。 */
+  --color-admin-bg: #F3F4F6;
+  --color-admin-surface: #FFFFFF;
+  --color-admin-text: #1F2937;
+  --color-admin-muted: #6B7280;
+  --color-admin-border: #E5E7EB;
+  --color-admin-accent-weak: #E7F5EE;
 }
 
 body {

@@ -1,0 +1,106 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.error {
+  color: var(--color-error);
+  font-size: 0.9rem;
+}
+
+.addRow {
+  display: flex;
+  gap: 8px;
+}
+
+.input {
+  flex: 1;
+  padding: 10px 12px;
+  font-size: 0.95rem;
+  border: 1px solid var(--color-admin-border);
+  border-radius: 8px;
+  background-color: #ffffff;
+  color: var(--color-admin-text);
+
+  &:focus {
+    outline: none;
+    border-color: var(--color-accent);
+  }
+}
+
+.addButton {
+  padding: 10px 18px;
+  font-size: 0.9rem;
+  font-weight: bold;
+  border: none;
+  border-radius: 8px;
+  background-color: var(--color-accent);
+  color: #ffffff;
+  cursor: pointer;
+
+  &:disabled {
+    background-color: var(--color-admin-border);
+    color: var(--color-admin-muted);
+    cursor: not-allowed;
+  }
+}
+
+.subLabel {
+  font-size: 0.85rem;
+  color: var(--color-admin-muted);
+}
+
+.empty {
+  font-size: 0.9rem;
+  color: var(--color-admin-muted);
+}
+
+.list {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px 6px 12px;
+  border-radius: 999px;
+  background-color: var(--color-admin-accent-weak);
+  color: var(--color-admin-text);
+  font-size: 0.9rem;
+}
+
+.removeButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 50%;
+  background-color: var(--color-error);
+  color: #ffffff;
+  font-size: 0.9rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.defaults {
+  margin-top: 4px;
+  font-size: 0.85rem;
+  color: var(--color-admin-muted);
+
+  summary {
+    cursor: pointer;
+  }
+}
+
+.defaultsList {
+  margin-top: 8px;
+  line-height: 1.7;
+  word-break: break-word;
+}

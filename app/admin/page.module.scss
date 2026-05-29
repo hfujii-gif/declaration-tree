@@ -1,0 +1,221 @@
+// ===== ログイン前：中央のカード（白基調） =====
+.loginContainer {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background-color: var(--color-admin-bg);
+}
+
+.loginCard {
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 32px;
+  border-radius: 12px;
+  background-color: var(--color-admin-surface);
+  border: 1px solid var(--color-admin-border);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+
+.loginTitle {
+  font-size: 1.3rem;
+  font-weight: bold;
+  color: var(--color-admin-text);
+  text-align: center;
+}
+
+.passwordInput {
+  padding: 12px 14px;
+  font-size: 1rem;
+  border: 1px solid var(--color-admin-border);
+  border-radius: 8px;
+  background-color: #ffffff;
+  color: var(--color-admin-text);
+
+  &:focus {
+    outline: none;
+    border-color: var(--color-accent);
+  }
+}
+
+.loginError {
+  color: var(--color-error);
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.loginButton {
+  padding: 12px;
+  font-size: 1rem;
+  font-weight: bold;
+  border: none;
+  border-radius: 8px;
+  background-color: var(--color-accent);
+  color: #ffffff;
+  cursor: pointer;
+
+  &:disabled {
+    background-color: var(--color-admin-border);
+    color: var(--color-admin-muted);
+    cursor: not-allowed;
+  }
+}
+
+// ===== ログイン後：左サイドバー＋メイン =====
+// 画面全体を高さ100vhに固定し、メイン領域を内部スクロールさせる
+// （グローバルの body{overflow:hidden} 下でも一覧がスクロールできるようにする）。
+.container {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  background-color: var(--color-admin-bg);
+  color: var(--color-admin-text);
+}
+
+.sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 14px;
+  background-color: var(--color-admin-surface);
+  border-right: 1px solid var(--color-admin-border);
+  overflow: hidden;
+  transition: width 0.18s ease;
+}
+
+// サイドバーを閉じた状態：細いレール幅にしてトグル（▶）だけ残す（ボタンはサイドバー内に置く）。
+.collapsed .sidebar {
+  width: 56px;
+  padding: 20px 8px;
+}
+.collapsed .menuToggle {
+  align-self: center;
+}
+.collapsed .brand,
+.collapsed .nav {
+  display: none;
+}
+
+// サイドバー開閉トグル。サイドバー内の上部に置く。開いているとき ◀（閉じる）、閉じているとき ▶（開く）。
+.menuToggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-end;
+  margin-bottom: 8px;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border: 1px solid var(--color-admin-border);
+  border-radius: 8px;
+  background-color: var(--color-admin-surface);
+  color: var(--color-admin-muted);
+  font-size: 0.85rem;
+  line-height: 1;
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+  }
+}
+
+.brand {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px 20px;
+  font-size: 1.1rem;
+  font-weight: bold;
+}
+
+.brandSub {
+  font-size: 0.75rem;
+  font-weight: normal;
+  color: var(--color-admin-muted);
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+// タブ。アクティブは緑を差し色に（左に緑のバー＋淡い緑背景＋緑文字）。
+.navItem {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 12px 14px;
+  border: none;
+  border-radius: 8px;
+  background-color: transparent;
+  color: var(--color-admin-text);
+  font-size: 0.95rem;
+  cursor: pointer;
+
+  &:hover {
+    background-color: var(--color-admin-bg);
+  }
+}
+
+.navItemActive {
+  background-color: var(--color-admin-accent-weak);
+  color: var(--color-accent);
+  font-weight: bold;
+  box-shadow: inset 3px 0 0 var(--color-accent);
+
+  &:hover {
+    background-color: var(--color-admin-accent-weak);
+  }
+}
+
+.logoutButton {
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  border: 1px solid var(--color-admin-border);
+  border-radius: 8px;
+  background-color: var(--color-admin-surface);
+  color: var(--color-admin-muted);
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:hover {
+    color: var(--color-admin-text);
+    border-color: var(--color-accent);
+  }
+}
+
+.main {
+  flex: 1;
+  padding: 28px 32px;
+  overflow-y: auto;
+}
+
+// メイン上部のヘッダー：左にページタイトル、右にログアウト。
+.mainHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.pageTitle {
+  font-size: 1.4rem;
+  font-weight: bold;
+  margin: 0;
+}
+
+.panel {
+  padding: 20px;
+  border-radius: 12px;
+  background-color: var(--color-admin-surface);
+  border: 1px solid var(--color-admin-border);
+}

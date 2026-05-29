@@ -1,0 +1,150 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.error {
+  color: var(--color-error);
+  font-size: 0.9rem;
+}
+
+// 検索＋表示状態フィルタの操作行。スクロール時も上部に固定する（sticky）。
+// 背景を付けてスクロールするリスト行が透けないようにする。
+.controls {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  background-color: var(--color-admin-surface);
+  border-bottom: 1px solid var(--color-admin-border);
+}
+
+.search {
+  flex: 1;
+  min-width: 200px;
+  padding: 10px 12px;
+  font-size: 0.95rem;
+  border: 1px solid var(--color-admin-border);
+  border-radius: 8px;
+  background-color: #ffffff;
+  color: var(--color-admin-text);
+
+  &:focus {
+    outline: none;
+    border-color: var(--color-accent);
+  }
+}
+
+.filters {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 8px;
+  background-color: var(--color-admin-bg);
+}
+
+.filterButton {
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  border: none;
+  border-radius: 6px;
+  background-color: transparent;
+  color: var(--color-admin-muted);
+  cursor: pointer;
+}
+
+.filterButtonActive {
+  background-color: var(--color-admin-surface);
+  color: var(--color-accent);
+  font-weight: bold;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.summary {
+  font-size: 0.85rem;
+  color: var(--color-admin-muted);
+}
+
+.empty {
+  font-size: 0.9rem;
+  color: var(--color-admin-muted);
+}
+
+.list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.loadMore {
+  align-self: center;
+  margin-top: 4px;
+  padding: 10px 20px;
+  font-size: 0.9rem;
+  border: 1px solid var(--color-admin-border);
+  border-radius: 8px;
+  background-color: var(--color-admin-surface);
+  color: var(--color-admin-text);
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+  }
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 110px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background-color: var(--color-admin-bg);
+  border: 1px solid var(--color-admin-border);
+}
+
+// 非表示中の宣言は薄く表示して状態が分かるようにする。
+.hiddenRow {
+  opacity: 0.5;
+}
+
+.date {
+  font-size: 0.8rem;
+  color: var(--color-admin-muted);
+  white-space: nowrap;
+}
+
+.text {
+  font-size: 0.95rem;
+  color: var(--color-admin-text);
+  word-break: break-word;
+}
+
+.hideButton,
+.showButton {
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  font-weight: bold;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.hideButton {
+  background-color: var(--color-error);
+  color: #ffffff;
+}
+
+.showButton {
+  background-color: var(--color-accent);
+  color: #ffffff;
+}

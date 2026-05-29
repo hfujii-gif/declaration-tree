@@ -34,9 +34,9 @@ export default function VisionPage() {
   const dbRef = useRef(ref(db, 'declarations'))
   // child_added の初期バーストが終わったか。onValue の初回発火で true にする。
   const initialLoadedRef = useRef(false)
-  // マイルストーン演出用。前回の累計（上向き通過の判定に使う）と、満開フィナーレの二度焚き防止。
-  const prevCountRef = useRef(0)
-  const fullBloomPlayedRef = useRef(false)
+  // 発火済みの最上位マイルストーンの index（-1=未発火）。単調増加で管理し、
+  // 「複数を跨いだら最大の1つだけ発火」「減少後の再通過では再発火しない」を両立する。
+  const firedIndexRef = useRef(-1)
   // 演出DOMのホスト（Celebration レイヤー）と、パルス・満開ポップの対象（CenterTree）。
   const celebrationRef = useRef<HTMLDivElement>(null)
   const treeRef = useRef<HTMLDivElement>(null)
@@ -61,9 +61,9 @@ export default function VisionPage() {
         }
         setCount(visible)
         // child_added の初期発火がすべて終わった後に value が初回発火する Firebase の保証を利用する。
-        // 初回は前回値を初期件数で埋め、起動時に過去のマイルストーン演出を一斉発火させない。
+        // 初回は到達済みのマイルストーンを発火済みとして記録し、起動時の一斉発火を抑止する。
         if (!initialLoadedRef.current) {
-          prevCountRef.current = visible
+          firedIndexRef.current = MILESTONES.filter((milestone) => visible >= milestone).length - 1
           initialLoadedRef.current = true
         }
       },
@@ -95,32 +95,24 @@ export default function VisionPage() {
     }
   }, [spawn])
 
-  // 累計が上向きにマイルストーンを通過した瞬間だけ達成演出を発火する。
-  // 初期ロード（prevCountRef を初期件数で初期化済み）・減少時・二度焚きは発火しない。
+  // 累計が新しいマイルストーンに到達したとき、その「最上位の1つだけ」を発火する。
+  // firedIndexRef を単調増加で管理するため、初期ロード・減少後の再通過・二度焚きでは発火しない。
+  // 1回の更新で複数のしきい値を跨いでも（再接続のバッファ一括反映・一括投入時）最大の1つだけを再生する。
   useEffect(() => {
     if (!initialLoadedRef.current) return
-    const prev = prevCountRef.current
-    if (count <= prev) {
-      prevCountRef.current = count
-      return
-    }
+    const targetIndex = MILESTONES.filter((milestone) => count >= milestone).length - 1
+    if (targetIndex <= firedIndexRef.current) return
     const layer = celebrationRef.current
     const tree = treeRef.current
-    MILESTONES.forEach((milestone, index) => {
-      if (prev < milestone && count >= milestone && layer && tree) {
-        if (index === MILESTONES.length - 1) {
-          // 10,000人＝満開フィナーレ。一度だけ。
-          if (!fullBloomPlayedRef.current) {
-            fullBloomPlayedRef.current = true
-            playFullBloom(layer, tree)
-          }
-        } else {
-          // 2,500/5,000/7,500＝段階が上がるほど派手に。
-          playMilestone(index + 1, milestone, layer, tree)
-        }
-      }
-    })
-    prevCountRef.current = count
+    if (!layer || !tree) return
+    firedIndexRef.current = targetIndex
+    if (targetIndex === MILESTONES.length - 1) {
+      // 10,000人＝満開フィナーレ。
+      playFullBloom(layer, tree)
+    } else {
+      // 2,500/5,000/7,500＝段階が上がるほど派手に。
+      playMilestone(targetIndex + 1, MILESTONES[targetIndex], layer, tree)
+    }
   }, [count])
 
   // ?celebrate= プレビュー：指定されたマイルストーンの達成演出を1回だけ再生する（リハーサル用）。

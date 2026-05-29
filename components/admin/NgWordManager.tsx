@@ -34,7 +34,8 @@ export default function NgWordManager() {
   const addWord = async (): Promise<void> => {
     const word = input.trim()
     if (word.length === 0) return
-    if (ngWords.includes(word)) {
+    // 重複判定は実際の検閲（containsNgWord）に合わせて小文字化・大小文字無視で揃える。
+    if (ngWords.some((w) => w.toLowerCase() === word.toLowerCase())) {
       setError('すでに登録されています。')
       return
     }

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { LEAF_DISPLAY_MS, MAX_VISIBLE_LEAVES } from '@/lib/constants'
+import { LEAF_DISPLAY_MS, LEAF_EVICT_FADE_MS, MAX_VISIBLE_LEAVES } from '@/lib/constants'
 
 // 葉の見た目バリエーション。
 export type LeafVariant = {
@@ -13,10 +13,11 @@ export type LeafVariant = {
 export type PlacedLeaf = {
   key: string // React の key（毎回ユニーク）
   text: string // 宣言の全文
-  slot: number // 占有スロット番号（重なり回避に使用）
+  slot: number // 占有スロット番号（重なり回避に使用）。退避中は -1（スロットを手放す）。
   xPercent: number // 配置座標（コンテナ幅に対する%）
   yPercent: number // 配置座標（コンテナ高さに対する%）
   variant: LeafVariant
+  exiting?: boolean // 上限超過で退避中。短いフェードアウト後に除去される。
 }
 
 // 配置スロットの格子。COLS * ROWS が MAX_VISIBLE_LEAVES 以上になるようにする。
@@ -92,23 +93,31 @@ export function useTransientLeaves(): {
       const key = `leaf-${keyCounterRef.current++}`
       const current = leavesRef.current
 
-      // 空きスロットを集めてランダムに1つ選ぶ。
-      const occupied = new Set(current.map((leaf) => leaf.slot))
+      // 空きスロットを集めてランダムに1つ選ぶ（退避中の葉 slot=-1 は数えない）。
+      const occupied = new Set(current.filter((leaf) => leaf.slot >= 0).map((leaf) => leaf.slot))
       const freeSlots: number[] = []
       for (let s = 0; s < MAX_VISIBLE_LEAVES; s++) {
         if (!occupied.has(s)) freeSlots.push(s)
       }
 
       let working = current
-      let slot: number
+      let slot = 0
       if (freeSlots.length > 0) {
         slot = freeSlots[Math.floor(Math.random() * freeSlots.length)]
       } else {
-        // 満杯なら最古の葉を即時退避してスロットを空ける。
-        const oldest = working[0]
-        clearTimer(oldest.key)
-        slot = oldest.slot
-        working = working.slice(1)
+        // 満杯：最古の「表示中」葉を即時消去せず、短いフェードアウトで退避させる
+        // （即時消去だと25台同時投稿のバースト時に葉がパッと消えるため）。
+        const oldest = current.find((leaf) => leaf.slot >= 0)
+        if (oldest) {
+          clearTimer(oldest.key)
+          slot = oldest.slot
+          // 退避中フラグを立て、スロットを手放す（新着がこのスロットをすぐ使える）。
+          working = current.map((leaf) =>
+            leaf.key === oldest.key ? { ...leaf, exiting: true, slot: -1 } : leaf
+          )
+          const evictTimer = setTimeout(() => removeLeaf(oldest.key), LEAF_EVICT_FADE_MS)
+          timersRef.current.set(oldest.key, evictTimer)
+        }
       }
 
       const placed = createPlacedLeaf(key, text, slot)

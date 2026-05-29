@@ -65,6 +65,16 @@
 // 葉のかたまりは単色（一番後ろの濃緑）で塗る。重なっても継ぎ目が出ず一枚の塊に見える。
 .clump {
   fill: var(--color-leaf-3);
+  // 満開へ移るとき葉色をなめらかに切り替える。
+  transition: fill 0.8s ease;
+}
+
+// 10,000人達成後の満開定着（#11）。葉色を明るくし、キャノピーに金色の発光をまとわせる。
+.treeWrap[data-bloomed='true'] .clump {
+  fill: var(--color-bloom-leaf);
+}
+.treeWrap[data-bloomed='true'] .canopy {
+  filter: url(#leafShadow) drop-shadow(0 0 12px rgba(255, 215, 0, 0.7));
 }
 
 // stage が上がるほど、中央の葉の塊そのものが大きく育つ（下端を基準に上・外へ広がる）。

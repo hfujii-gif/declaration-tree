@@ -1,4 +1,4 @@
-import { LEAF_DISPLAY_MS } from '@/lib/constants'
+import { LEAF_DISPLAY_MS, LEAF_EVICT_FADE_MS } from '@/lib/constants'
 import type { PlacedLeaf } from './useTransientLeaves'
 import styles from './LeafLayer.module.scss'
 
@@ -8,18 +8,19 @@ type LeafItemProps = {
 
 // 宣言の全文が書かれた横向きのテキスト葉1枚。配置・色・サイズ・回転は個体ごとに異なる。
 // 主葉脈から左右に枝分かれする側脈を SVG で描く。
-// フェードイン→フェードアウトは CSS アニメーション（duration は LEAF_DISPLAY_MS と一致させる）。
+// 通常はフェードイン→維持→フェードアウト（duration は LEAF_DISPLAY_MS）。
+// 退避中（exiting）は短いフェードアウトに切り替える（duration は LEAF_EVICT_FADE_MS）。
 export default function LeafItem({ leaf }: LeafItemProps) {
-  const { text, xPercent, yPercent, variant } = leaf
+  const { text, xPercent, yPercent, variant, exiting } = leaf
   return (
     <div
-      className={`${styles.leaf} ${styles[`shape${variant.shape}`]}`}
+      className={`${styles.leaf} ${styles[`shape${variant.shape}`]} ${exiting ? styles.exiting : ''}`}
       style={{
         left: `${xPercent}%`,
         top: `${yPercent}%`,
         transform: `translate(-50%, -50%) scale(${variant.scale}) rotate(${variant.rotate}deg)`,
         backgroundColor: `var(${variant.colorVar})`,
-        animationDuration: `${LEAF_DISPLAY_MS}ms`,
+        animationDuration: `${exiting ? LEAF_EVICT_FADE_MS : LEAF_DISPLAY_MS}ms`,
       }}
     >
       <svg

@@ -108,3 +108,18 @@
     opacity: 0;
   }
 }
+
+// 同時表示が上限に達したときに退避する葉。leafLife を上書きして即・短くフェードアウトする。
+// duration はインラインで LEAF_EVICT_FADE_MS を渡す（lib/constants.ts と一致）。
+.exiting {
+  animation-name: leafEvict;
+}
+
+@keyframes leafEvict {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}

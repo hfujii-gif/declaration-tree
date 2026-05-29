@@ -1,0 +1,8 @@
+// 達成演出のレイヤー。カウンター（z-index:3）より前面に置き、操作は透過する。
+.layer {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  overflow: hidden;
+}

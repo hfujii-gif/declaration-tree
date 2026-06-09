@@ -194,15 +194,17 @@ const showText = (
   )
 }
 
-// 木全体を一瞬パルスさせる（svg を拡大→戻す）。
+// 木全体を一瞬パルスさせる（内側ラッパーを拡大→戻す）。
+// 幹・枝（SVG）と樹冠レイン（canvas）を束ねた [data-tree-inner] を対象にすることで一体でパルスする。
+// 旧構造（svg 直下）でも壊れないよう svg をフォールバックにする。
 const pulseTree = (tl: gsap.core.Timeline, tree: HTMLElement, scale: number, at: number): void => {
-  const svg = tree.querySelector('svg')
-  if (!svg) return
-  tl.to(svg, { scale, transformOrigin: 'bottom center', duration: 0.45, ease: 'power2.out' }, at).to(
-    svg,
-    { scale: 1, duration: 0.55, ease: 'power2.inOut' },
-    at + 0.45
-  )
+  const target = tree.querySelector<HTMLElement>('[data-tree-inner]') ?? tree.querySelector('svg')
+  if (!target) return
+  tl.to(
+    target,
+    { scale, transformOrigin: 'bottom center', duration: 0.45, ease: 'power2.out' },
+    at
+  ).to(target, { scale: 1, duration: 0.55, ease: 'power2.inOut' }, at + 0.45)
 }
 
 // フィナーレの余韻。キラキラを数秒間ちらつかせてから片付ける。
@@ -297,10 +299,11 @@ export const clearCelebrations = (layer: HTMLElement | null, tree: HTMLElement |
     layer.replaceChildren()
   }
   if (tree) {
-    const svg = tree.querySelector('svg')
-    if (svg) {
-      gsap.killTweensOf(svg)
-      gsap.set(svg, { clearProps: 'all' })
+    // パルス対象（内側ラッパー。旧構造では svg）の進行中 Tween を止めて transform を戻す。
+    const target = tree.querySelector<HTMLElement>('[data-tree-inner]') ?? tree.querySelector('svg')
+    if (target) {
+      gsap.killTweensOf(target)
+      gsap.set(target, { clearProps: 'all' })
     }
   }
 }

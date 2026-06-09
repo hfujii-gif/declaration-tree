@@ -1,4 +1,4 @@
-// 木の配置。画面中央下に立たせ、stage に応じて下端を基準に拡大する。
+// 木の配置（#43 サイバー化）。画面中央下に立たせ、stage に応じて下端を基準に拡大する。
 .treeWrap {
   position: absolute;
   left: 50%;
@@ -7,8 +7,16 @@
   transform-origin: bottom center;
   // 段階成長を滑らかに見せる。
   transition: transform 1.2s ease;
-  // 木全体のサイズは一定にし、stage による成長は葉の塊（.canopy）の拡大で表現する。
+  // 木全体のサイズは一定にし、stage による成長はキャノピー（.canopy）の拡大で表現する。
   transform: translateX(-50%) scale(1.05);
+}
+
+// 木の内側ラッパー。マイルストーンのパルス（pulseTree）はこの要素を拡大→戻すため、
+// 幹・枝（SVG）と樹冠レイン（canvas）が一体でパルスする。
+.treeInner {
+  position: relative;
+  display: inline-block;
+  transform-origin: bottom center;
 }
 
 .tree {
@@ -18,81 +26,101 @@
   overflow: visible;
 }
 
-// 地面の落ち影。
-.groundShadow {
-  fill: #000000;
-  opacity: 0.18;
-}
-
-// 幹は木目グラデーションで塗る。
+// 発光する幹（太めの塊）。縦グラデーション（上が金色・根元が茶）で塗り、暖色のグローをまとわせる。
 .trunk {
-  fill: url(#trunkGrad);
+  fill: url(#cyberTrunk);
+  filter:
+    drop-shadow(0 0 4px var(--color-trunk-glow))
+    drop-shadow(0 0 9px rgba(180, 110, 40, 0.7));
+}
+// 幹グラデーションの色（上が明るく、根元がシアン寄り）。
+.trunkStopTop {
+  stop-color: var(--color-cyber-trunk-top);
+}
+.trunkStopBottom {
+  stop-color: var(--color-cyber-trunk-bottom);
 }
 
-// 幹の木目線（細い陰影の筋）。
-.bark {
+// 枝は金茶の発光ライン。太→細でテーパーさせ、暖色のグローをまとわせる。
+.branchMain,
+.branchSub,
+.branchTwig {
   fill: none;
-  stroke: var(--color-trunk-dark);
-  stroke-width: 1.5;
+  stroke: var(--color-branch);
   stroke-linecap: round;
-  opacity: 0.4;
-}
-
-// 木目グラデーションの色（円柱状の陰影）。
-.trunkStopLight {
-  stop-color: var(--color-trunk-light);
-}
-.trunkStopMid {
-  stop-color: var(--color-trunk);
-}
-.trunkStopDark {
-  stop-color: var(--color-trunk-dark);
-}
-
-// 枝は幹と同じ木目色のグラデーションで描く。太→細でテーパーさせる。
-.branches path {
-  fill: none;
-  stroke: url(#trunkGrad);
-  stroke-linecap: round;
+  filter:
+    drop-shadow(0 0 3px var(--color-trunk-glow))
+    drop-shadow(0 0 6px rgba(180, 110, 40, 0.6));
 }
 .branchMain {
-  stroke-width: 7;
+  stroke-width: 3.4;
+}
+.branchSub {
+  stroke-width: 2.2;
+  opacity: 0.92;
 }
 .branchTwig {
-  stroke-width: 3.5;
+  stroke-width: 1.4;
+  opacity: 0.8;
 }
 
-// 葉のかたまりは単色（一番後ろの濃緑）で塗る。重なっても継ぎ目が出ず一枚の塊に見える。
-.clump {
-  fill: var(--color-leaf-3);
-  // 満開へ移るとき葉色をなめらかに切り替える。
-  transition: fill 0.8s ease;
+// 幹・枝のグローをごくゆっくり脈動させ、ホログラム感を出す。
+.trunk {
+  animation: line-pulse 5s ease-in-out infinite;
+}
+.branches {
+  animation: line-pulse 5s ease-in-out infinite;
+  animation-delay: -2.5s;
 }
 
-// 10,000人達成後の満開定着（#11）。葉色を明るくし、キャノピーに金色の発光をまとわせる。
-.treeWrap[data-bloomed='true'] .clump {
-  fill: var(--color-bloom-leaf);
-}
-.treeWrap[data-bloomed='true'] .canopy {
-  filter: url(#leafShadow) drop-shadow(0 0 12px rgba(255, 215, 0, 0.7));
+@keyframes line-pulse {
+  0%,
+  100% {
+    opacity: 0.9;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
-// stage が上がるほど、中央の葉の塊そのものが大きく育つ（下端を基準に上・外へ広がる）。
+// 樹冠＝マトリックス・デジタルレインを描く canvas。SVGの木（360×468）の樹冠位置に重ねる。
+// アニメーション本体は JS(rAF) 側。CSS は配置と stage 拡大・満開発光の見た目だけを担う。
+// stage が上がるほど下端基準で拡大する（下・外へ広がる）。
 .canopy {
-  transform-box: fill-box;
+  position: absolute;
+  left: -70px;
+  top: 0;
+  width: 500px;
+  height: 380px;
   transform-origin: center bottom;
-  transition: transform 1.2s ease;
+  transition: transform 1.2s ease, filter 0.8s ease;
   transform: scale(1);
+  filter: drop-shadow(0 0 5px var(--color-leaf-glow));
+  pointer-events: none;
 }
+
+// stage が上がるほど樹冠（緑レイン）が大きく育ち、緑の発光も強まる。
+// 最初からモリモリなので拡大は控えめにし、主に発光で“成長感”を出す。
 .treeWrap[data-stage='1'] .canopy {
-  transform: scale(1.12);
+  transform: scale(1.06);
+  filter: drop-shadow(0 0 7px rgba(60, 224, 106, 0.4));
 }
 .treeWrap[data-stage='2'] .canopy {
-  transform: scale(1.24);
+  transform: scale(1.12);
+  filter: drop-shadow(0 0 10px rgba(60, 224, 106, 0.5));
 }
 .treeWrap[data-stage='3'] .canopy {
-  transform: scale(1.36);
+  transform: scale(1.18);
+  filter: drop-shadow(0 0 13px rgba(60, 224, 106, 0.6));
 }
 .treeWrap[data-stage='4'] .canopy {
-  transform: scale(1.48);
+  transform: scale(1.24);
+  filter: drop-shadow(0 0 17px rgba(60, 224, 106, 0.7));
+}
+
+// 10,000人達成後の満開定着（#45）。樹冠の緑レインの発光を最大化し、白〜淡緑に強く輝かせる。
+// 文字色はキャンバス描画側が制御するため、ここは輝度アップ＋強い緑グローで白熱させる。
+.treeWrap[data-bloomed='true'] .canopy {
+  filter: brightness(1.5) drop-shadow(0 0 10px #ffffff)
+    drop-shadow(0 0 24px rgba(120, 245, 150, 0.85));
 }

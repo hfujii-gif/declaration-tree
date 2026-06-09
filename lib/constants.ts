@@ -11,14 +11,14 @@ export const MILESTONES = [2500, 5000, 7500, 10000] as const
 // 管理画面で参照する環境変数名（process.env[ADMIN_PASSWORD_ENV] で照合）
 export const ADMIN_PASSWORD_ENV = 'ADMIN_PASSWORD'
 
-// /vision のテキスト葉が表示されてから消えるまでの時間（ミリ秒）。累積させず一定時間で消す。
-export const LEAF_DISPLAY_MS = 30000
+// /vision 宣言吸収演出（#44）。新着宣言ごとに「中央に大きく表示→マトリックス分解→木へ吸収→木が発光」を再生する。
 
-// /vision で同時に表示できるテキスト葉の最大数（＝配置スロット数）。
-// 50文字でも全文が読める大きさの葉を、画面外にはみ出さず重ならず並べるため、3列×3行=9枚とする。
-// この数を超えて宣言が届いた場合は最古の葉を消して新しい葉を表示する（重なり回避）。
-export const MAX_VISIBLE_LEAVES = 9
+// 中央に表示した宣言テキストを読ませる時間（ミリ秒）。この後に分解〜吸収へ移る。
+export const DECLARATION_TEXT_HOLD_MS = 1000
 
-// 同時表示が上限に達した状態で新着が来たとき、最古の葉を即時消去せず短くフェードアウトさせる時間（ミリ秒）。
-// ※ components/vision/LeafLayer.module.scss の .exiting アニメーション時間と一致させること。
-export const LEAF_EVICT_FADE_MS = 400
+// マトリックス分解〜木への吸収にかける時間（ミリ秒）。
+export const DECLARATION_ABSORB_MS = 1600
+
+// 同時バースト時（iPad 25台同時送信など）に貯められる演出キューの上限。
+// スポットライトは同時に1つだけ再生し、超過分は捨てる（無音で打ち切らず console.warn で可視化する）。
+export const DECLARATION_MAX_QUEUE = 12

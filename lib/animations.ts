@@ -14,6 +14,7 @@
 import { gsap } from 'gsap'
 import { SplitText } from 'gsap/SplitText'
 import { Physics2DPlugin } from 'gsap/Physics2DPlugin'
+import { DECLARATION_TEXT_HOLD_MS, DECLARATION_ABSORB_MS } from '@/lib/constants'
 
 // ---- 見た目の定数（しきい値は lib/constants.ts の MILESTONES を使う。ここは演出パラメータ） ----
 const CONFETTI_COLORS = ['#FFD700', '#FF8FB1', '#7BE0AD', '#6EC1E4', '#FFFFFF']
@@ -21,6 +22,16 @@ const PETAL_COLOR = '#FFB7C5'
 const TEXT_GOLD = '#FFD700'
 // 演出の起点（画面に対する%）。中央の木のキャノピー付近。
 const ORIGIN_TOP = 42
+
+// ---- 宣言吸収演出（#44）の見た目パラメータ ----
+// マトリックス分解時に1文字ずつ差し替えるグリフ（半角カタカナ＋英数字＝デジタルレインの質感）。
+const MATRIX_GLYPHS = 'ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎ0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+// 木へ吸い込まれるときに文字がシフトする色（樹冠の緑に溶け込む）。
+const ABSORB_COLOR = 'rgba(120, 245, 150, 1)'
+// 吸収の文字ごとのずらし（秒）。1文字ずつ吸い込まれる連続感を出す。
+const ABSORB_STAGGER = 0.03
+
+const pickGlyph = (): string => MATRIX_GLYPHS[(Math.random() * MATRIX_GLYPHS.length) | 0]
 
 // GSAP プラグインは初回利用時に一度だけ登録する（クライアントでのみ呼ばれる）。
 let pluginsRegistered = false
@@ -289,6 +300,123 @@ export const playFullBloom = (layer: HTMLElement, tree: HTMLElement): gsap.core.
   burstPetals(layer, 150)
   showText(tl, layer, '10,000人達成！', 'clamp(3.2rem, 10vmin, 7rem)', true, 0.8, 4.5)
   addSparkles(layer)
+  return tl
+}
+
+// 宣言吸収演出（#44）。新着宣言1件を「中央に大きく表示→マトリックス分解→木へ吸収→木が一瞬発光」で再生する。
+// layer は Celebration レイヤー（全画面・最前面）、tree は CenterTree（内に [data-canopy] を持つ）。
+// 完走時に生成DOM・SplitText・Tween をすべて破棄する（長時間稼働のメモリリーク対策）。
+// holdMs/absorbMs を渡すとバックログ時に短縮できる（未指定なら constants の既定値）。
+export const playDeclaration = (
+  text: string,
+  layer: HTMLElement,
+  tree: HTMLElement,
+  opts?: { holdMs?: number; absorbMs?: number }
+): gsap.core.Timeline => {
+  ensurePlugins()
+  const tl = gsap.timeline()
+  const holdSec = (opts?.holdMs ?? DECLARATION_TEXT_HOLD_MS) / 1000
+  const absorbSec = (opts?.absorbMs ?? DECLARATION_ABSORB_MS) / 1000
+  const reduced =
+    typeof window !== 'undefined' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+  // 中央に約1/3サイズで宣言テキストを表示する要素。50文字でも折り返して収まるようにする。
+  const el = makeEl(
+    layer,
+    'position:absolute;top:38%;left:50%;transform:translate(-50%,-50%);' +
+      'max-width:62vw;text-align:center;line-height:1.3;' +
+      "font-size:clamp(2rem, 5.2vmin, 4.4rem);font-weight:800;font-family:'Arial',sans-serif;" +
+      'color:#ffffff;letter-spacing:0.02em;opacity:0;will-change:transform,opacity;' +
+      'text-shadow:0 0 10px rgba(120,245,150,0.7), 0 2px 14px rgba(0,30,20,0.6);'
+  )
+  el.textContent = text
+
+  // reduced-motion：飛行・分解を省き、フェードイン→保持→フェードアウトのみ。
+  if (reduced) {
+    tl.fromTo(el, { opacity: 0 }, { opacity: 1, duration: 0.4, ease: 'power1.out' })
+      .to(el, { opacity: 0, duration: 0.5, ease: 'power1.in', onComplete: () => el.remove() }, `+=${holdSec}`)
+    return tl
+  }
+
+  // 1文字ずつに分割（吸収先へ個別に飛ばすため）。
+  const split = new SplitText(el, { type: 'chars' })
+
+  // 吸収先＝木のキャノピー中心（ビューポート座標）。文字の rect も同座標系なので差分でデルタを得る。
+  const canopy = tree.querySelector<HTMLElement>('[data-canopy]') ?? tree
+  const canopyRect = canopy.getBoundingClientRect()
+  const targetX = canopyRect.left + canopyRect.width / 2
+  const targetY = canopyRect.top + canopyRect.height * 0.45
+
+  // 登場：すっと出して holdSec 読ませる。スケールは戻すので、文字の自然位置は分割時の計測値と一致する。
+  tl.fromTo(
+    el,
+    { opacity: 0, scale: 0.82 },
+    { opacity: 1, scale: 1, duration: 0.45, ease: 'back.out(1.6)' },
+    0
+  )
+
+  const absorbStart = 0.45 + holdSec
+
+  // 文字ごとに：分割時点の中心を計測し、木へ向かうデルタを算出して飛ばす。
+  // 飛びながらグリフをちらつかせ（マトリックス分解）、縮小・緑へ色シフト・フェードして木に消える。
+  split.chars.forEach((char, i) => {
+    const charEl = char as HTMLElement
+    const rect = charEl.getBoundingClientRect()
+    const dx = targetX - (rect.left + rect.width / 2)
+    const dy = targetY - (rect.top + rect.height / 2)
+    const original = charEl.textContent ?? ''
+    let frame = 0
+    tl.to(
+      charEl,
+      {
+        x: dx,
+        y: dy,
+        scale: 0.18,
+        opacity: 0,
+        color: ABSORB_COLOR,
+        duration: absorbSec,
+        ease: 'power2.in',
+        onUpdate: () => {
+          // 数フレームに一度グリフを差し替えて“分解”の質感を出す（毎フレームは重いので間引く）。
+          frame++
+          if (frame % 4 === 0) charEl.textContent = pickGlyph()
+        },
+        onComplete: () => {
+          charEl.textContent = original // revert で消えるが念のため戻す
+        },
+      },
+      absorbStart + i * ABSORB_STAGGER
+    )
+  })
+
+  // 吸収到達に合わせ、キャノピー位置に短い発光を出して「木が明るくなる」感を作る。
+  const layerRect = layer.getBoundingClientRect()
+  const glow = makeEl(
+    layer,
+    `position:absolute;left:${targetX - layerRect.left}px;top:${targetY - layerRect.top}px;` +
+      'width:34vmin;height:34vmin;transform:translate(-50%,-50%) scale(0);border-radius:50%;' +
+      'filter:blur(8px);will-change:transform,opacity;' +
+      'background:radial-gradient(circle, rgba(150,255,180,0.85) 0%, rgba(120,245,150,0.4) 40%, rgba(120,245,150,0) 70%);'
+  )
+  const glowAt = absorbStart + absorbSec * 0.6
+  tl.fromTo(
+    glow,
+    { scale: 0, opacity: 0 },
+    { scale: 1.1, opacity: 1, duration: 0.4, ease: 'power2.out' },
+    glowAt
+  ).to(
+    glow,
+    { opacity: 0, duration: 0.7, ease: 'power2.in', onComplete: () => glow.remove() },
+    glowAt + 0.4
+  )
+
+  // 完走時に SplitText を戻し、テキスト要素を破棄する。
+  tl.call(() => {
+    split.revert()
+    el.remove()
+  })
+
   return tl
 }
 

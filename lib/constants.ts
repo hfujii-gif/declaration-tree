@@ -11,14 +11,32 @@ export const MILESTONES = [2500, 5000, 7500, 10000] as const
 // 管理画面で参照する環境変数名（process.env[ADMIN_PASSWORD_ENV] で照合）
 export const ADMIN_PASSWORD_ENV = 'ADMIN_PASSWORD'
 
-// /vision のテキスト葉が表示されてから消えるまでの時間（ミリ秒）。累積させず一定時間で消す。
-export const LEAF_DISPLAY_MS = 30000
+// /vision 宣言吸収演出（#44）。新着宣言ごとに「中央に大きく表示→マトリックス分解→木へ吸収→木が発光」を再生する。
 
-// /vision で同時に表示できるテキスト葉の最大数（＝配置スロット数）。
-// 50文字でも全文が読める大きさの葉を、画面外にはみ出さず重ならず並べるため、3列×3行=9枚とする。
-// この数を超えて宣言が届いた場合は最古の葉を消して新しい葉を表示する（重なり回避）。
-export const MAX_VISIBLE_LEAVES = 9
+// 新着を検出してから中央テキストを出すまでの“間”（ミリ秒）。
+// 参加者がiPadから大型ビジョンへ目線を上げる時間を確保し、登場を見逃しにくくする。
+export const DECLARATION_START_DELAY_MS = 900
 
-// 同時表示が上限に達した状態で新着が来たとき、最古の葉を即時消去せず短くフェードアウトさせる時間（ミリ秒）。
-// ※ components/vision/LeafLayer.module.scss の .exiting アニメーション時間と一致させること。
-export const LEAF_EVICT_FADE_MS = 400
+// 中央に表示した宣言テキストを読ませる時間（ミリ秒）。この後に分解〜吸収へ移る。
+export const DECLARATION_TEXT_HOLD_MS = 1600
+
+// マトリックス分解〜木への吸収にかける時間（ミリ秒）。ゆっくり吸い込まれる余韻を持たせる。
+export const DECLARATION_ABSORB_MS = 2800
+
+// 連続送信時、1件の演出が終わってから次を表示するまでの“間”（ミリ秒）。
+// 立て続けに流れず、1件ずつ落ち着いて見えるようにする。
+export const DECLARATION_GAP_MS = 1500
+
+// 同時バースト時（iPad 25台同時送信など）に貯められる演出キューの上限。
+// スポットライトは同時に1つだけ再生し、超過分は捨てる（無音で打ち切らず console.warn で可視化する）。
+export const DECLARATION_MAX_QUEUE = 12
+
+// バックログ（未処理キュー）がこの件数を超えたら、ドレインを早めるため演出を短縮モードにする。
+export const DECLARATION_BACKLOG_THRESHOLD = 4
+
+// バックログ短縮モードでの各タイミング（ミリ秒）。通常時より短くしてキューの詰まりを解消する。
+export const DECLARATION_BACKLOG_LEAD_MS = 300
+export const DECLARATION_BACKLOG_HOLD_MS = 800
+export const DECLARATION_BACKLOG_ABSORB_MS = 1800
+// バックログ短縮モードでの連続表示の“間”（ミリ秒）。通常の DECLARATION_GAP_MS より短くする。
+export const DECLARATION_BACKLOG_GAP_MS = 500

@@ -6,9 +6,8 @@ import { MILESTONES } from '@/lib/constants'
 import type { Declaration } from '@/types'
 import Background from '@/components/vision/Background'
 import CenterTree from '@/components/vision/CenterTree'
-import LeafLayer from '@/components/vision/LeafLayer'
 import Celebration from '@/components/vision/Celebration'
-import { useTransientLeaves } from '@/components/vision/useTransientLeaves'
+import { useDeclarationStream } from '@/components/vision/useDeclarationStream'
 import { playMilestone, playFullBloom, clearCelebrations } from '@/lib/animations'
 import styles from './page.module.scss'
 
@@ -30,7 +29,6 @@ export default function VisionPage() {
   const stageParam = useSyncExternalStore(subscribeStageParam, getStageParam, getServerStageParam)
   // プレビュー用：URL の ?celebrate= を読み、あれば該当段階の達成演出を1回だけ再生する。
   const celebrateParam = useSyncExternalStore(subscribeStageParam, getCelebrateParam, getServerStageParam)
-  const { leaves, spawn } = useTransientLeaves()
   const dbRef = useRef(ref(db, 'declarations'))
   // child_added の初期バーストが終わったか。onValue の初回発火で true にする。
   const initialLoadedRef = useRef(false)
@@ -40,6 +38,8 @@ export default function VisionPage() {
   // 演出DOMのホスト（Celebration レイヤー）と、パルス・満開ポップの対象（CenterTree）。
   const celebrationRef = useRef<HTMLDivElement>(null)
   const treeRef = useRef<HTMLDivElement>(null)
+  // 新着宣言の吸収演出を直列再生するキュー（葉システムの置き換え）。
+  const enqueueDeclaration = useDeclarationStream(celebrationRef, treeRef)
   // ?celebrate= プレビューの二度焚き防止。
   const celebratedRef = useRef(false)
 
@@ -72,15 +72,15 @@ export default function VisionPage() {
       }
     )
 
-    // 新着の宣言だけテキスト葉を生成する（差分のみ受信）。
-    // 初期ロード分（既存の全宣言）では葉を出さない。
+    // 新着の宣言だけ吸収演出をキューに積む（差分のみ受信）。
+    // 初期ロード分（既存の全宣言）では演出を出さない。
     const unsubscribeChild = onChildAdded(
       declarationsRef,
       (snapshot) => {
         if (!initialLoadedRef.current) return
         const d = snapshot.val() as Omit<Declaration, 'id'> | null
         if (d && d.isVisible && typeof d.text === 'string') {
-          spawn(d.text)
+          enqueueDeclaration(d.text)
         }
       },
       (error) => {
@@ -93,7 +93,7 @@ export default function VisionPage() {
       unsubscribeValue()
       unsubscribeChild()
     }
-  }, [spawn])
+  }, [enqueueDeclaration])
 
   // 累計が新しいマイルストーンに到達したとき、その「最上位の1つだけ」を発火する。
   // firedIndexRef を単調増加で管理するため、初期ロード・減少後の再通過・二度焚きでは発火しない。
@@ -155,7 +155,6 @@ export default function VisionPage() {
     <div className={styles.container}>
       <Background />
       <CenterTree ref={treeRef} stage={stage} bloomed={bloomed} />
-      <LeafLayer leaves={leaves} />
       <div className={styles.counter}>{count.toLocaleString()}人が宣言しました</div>
       <Celebration ref={celebrationRef} />
     </div>

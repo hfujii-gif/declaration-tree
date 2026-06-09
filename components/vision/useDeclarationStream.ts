@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react'
 import type { RefObject } from 'react'
 import { playDeclaration } from '@/lib/animations'
-import { DECLARATION_MAX_QUEUE } from '@/lib/constants'
+import { DECLARATION_GAP_MS, DECLARATION_MAX_QUEUE } from '@/lib/constants'
 
 // 宣言吸収演出（#44）のキュー管理フック。
 // 中央スポットライトは同時に1つだけ再生し、新着宣言は直列に1件ずつ消化する
@@ -18,12 +18,15 @@ export function useDeclarationStream(
   const queueRef = useRef<string[]>([])
   const playingRef = useRef(false)
   const currentTlRef = useRef<gsap.core.Timeline | null>(null)
+  // 連続時に次の演出を表示するまでの“間”のタイマー。待機中は drain しない。
+  const gapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const unmountedRef = useRef(false)
   // 演出完了時の再帰呼び出しを ref 経由にして、drain の自己参照を避ける。
   const drainRef = useRef<() => void>(() => {})
 
   const drain = useCallback((): void => {
-    if (playingRef.current || unmountedRef.current) return
+    // 再生中／“間”の待機中／アンマウント後は何もしない。
+    if (playingRef.current || gapTimerRef.current !== null || unmountedRef.current) return
     const layer = layerRef.current
     const tree = treeRef.current
     if (!layer || !tree) return // DOM 未準備（通常は起こらない）。次の enqueue で再試行される。
@@ -31,15 +34,22 @@ export function useDeclarationStream(
     if (text === undefined) return
 
     playingRef.current = true
-    // バックログが溜まっているときは表示を短縮してドレインを早める。
+    // バックログが溜まっているときは“間”と表示を短縮してドレインを早める（それでも極端には速くしない）。
     const backlog = queueRef.current.length
-    const opts = backlog > 4 ? { holdMs: 450, absorbMs: 1100 } : undefined
+    const opts = backlog > 4 ? { leadMs: 300, holdMs: 800, absorbMs: 1800 } : undefined
     const tl = playDeclaration(text, layer, tree, opts)
     currentTlRef.current = tl
     tl.eventCallback('onComplete', () => {
       currentTlRef.current = null
       playingRef.current = false
-      drainRef.current() // 次の1件へ
+      if (unmountedRef.current) return
+      // 次が無ければ“間”を置かず待機（新着が来たら即時再生）。あれば連続表示の間隔を空ける。
+      if (queueRef.current.length === 0) return
+      const gapMs = queueRef.current.length > 4 ? 500 : DECLARATION_GAP_MS
+      gapTimerRef.current = setTimeout(() => {
+        gapTimerRef.current = null
+        drainRef.current()
+      }, gapMs)
     })
   }, [layerRef, treeRef])
 
@@ -68,6 +78,10 @@ export function useDeclarationStream(
       unmountedRef.current = true
       queueRef.current = []
       playingRef.current = false
+      if (gapTimerRef.current) {
+        clearTimeout(gapTimerRef.current)
+        gapTimerRef.current = null
+      }
       if (currentTlRef.current) {
         currentTlRef.current.kill()
         currentTlRef.current = null

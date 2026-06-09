@@ -13,11 +13,19 @@ export const ADMIN_PASSWORD_ENV = 'ADMIN_PASSWORD'
 
 // /vision 宣言吸収演出（#44）。新着宣言ごとに「中央に大きく表示→マトリックス分解→木へ吸収→木が発光」を再生する。
 
-// 中央に表示した宣言テキストを読ませる時間（ミリ秒）。この後に分解〜吸収へ移る。
-export const DECLARATION_TEXT_HOLD_MS = 1000
+// 新着を検出してから中央テキストを出すまでの“間”（ミリ秒）。
+// 参加者がiPadから大型ビジョンへ目線を上げる時間を確保し、登場を見逃しにくくする。
+export const DECLARATION_START_DELAY_MS = 900
 
-// マトリックス分解〜木への吸収にかける時間（ミリ秒）。
-export const DECLARATION_ABSORB_MS = 1600
+// 中央に表示した宣言テキストを読ませる時間（ミリ秒）。この後に分解〜吸収へ移る。
+export const DECLARATION_TEXT_HOLD_MS = 1600
+
+// マトリックス分解〜木への吸収にかける時間（ミリ秒）。ゆっくり吸い込まれる余韻を持たせる。
+export const DECLARATION_ABSORB_MS = 2800
+
+// 連続送信時、1件の演出が終わってから次を表示するまでの“間”（ミリ秒）。
+// 立て続けに流れず、1件ずつ落ち着いて見えるようにする。
+export const DECLARATION_GAP_MS = 1500
 
 // 同時バースト時（iPad 25台同時送信など）に貯められる演出キューの上限。
 // スポットライトは同時に1つだけ再生し、超過分は捨てる（無音で打ち切らず console.warn で可視化する）。

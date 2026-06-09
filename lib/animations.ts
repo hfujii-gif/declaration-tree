@@ -14,7 +14,11 @@
 import { gsap } from 'gsap'
 import { SplitText } from 'gsap/SplitText'
 import { Physics2DPlugin } from 'gsap/Physics2DPlugin'
-import { DECLARATION_TEXT_HOLD_MS, DECLARATION_ABSORB_MS } from '@/lib/constants'
+import {
+  DECLARATION_START_DELAY_MS,
+  DECLARATION_TEXT_HOLD_MS,
+  DECLARATION_ABSORB_MS,
+} from '@/lib/constants'
 
 // ---- 見た目の定数（しきい値は lib/constants.ts の MILESTONES を使う。ここは演出パラメータ） ----
 const CONFETTI_COLORS = ['#FFD700', '#FF8FB1', '#7BE0AD', '#6EC1E4', '#FFFFFF']
@@ -28,8 +32,10 @@ const ORIGIN_TOP = 42
 const MATRIX_GLYPHS = 'ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎ0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 // 木へ吸い込まれるときに文字がシフトする色（樹冠の緑に溶け込む）。
 const ABSORB_COLOR = 'rgba(120, 245, 150, 1)'
-// 吸収の文字ごとのずらし（秒）。1文字ずつ吸い込まれる連続感を出す。
-const ABSORB_STAGGER = 0.03
+// 中央テキストの登場にかける時間（秒）。
+const DECLARATION_ENTRANCE_SEC = 0.7
+// 吸収の文字ごとのずらし（秒）。1文字ずつ吸い込まれる連続感を出す（大きいほどゆっくり順番に）。
+const ABSORB_STAGGER = 0.05
 
 const pickGlyph = (): string => MATRIX_GLYPHS[(Math.random() * MATRIX_GLYPHS.length) | 0]
 
@@ -311,10 +317,12 @@ export const playDeclaration = (
   text: string,
   layer: HTMLElement,
   tree: HTMLElement,
-  opts?: { holdMs?: number; absorbMs?: number }
+  opts?: { holdMs?: number; absorbMs?: number; leadMs?: number }
 ): gsap.core.Timeline => {
   ensurePlugins()
   const tl = gsap.timeline()
+  // リードイン：新着検出から中央テキストを出すまでの“間”（目線をビジョンへ上げる時間）。
+  const leadSec = (opts?.leadMs ?? DECLARATION_START_DELAY_MS) / 1000
   const holdSec = (opts?.holdMs ?? DECLARATION_TEXT_HOLD_MS) / 1000
   const absorbSec = (opts?.absorbMs ?? DECLARATION_ABSORB_MS) / 1000
   const reduced =
@@ -334,7 +342,7 @@ export const playDeclaration = (
 
   // reduced-motion：飛行・分解を省き、フェードイン→保持→フェードアウトのみ。
   if (reduced) {
-    tl.fromTo(el, { opacity: 0 }, { opacity: 1, duration: 0.4, ease: 'power1.out' })
+    tl.fromTo(el, { opacity: 0 }, { opacity: 1, duration: 0.4, ease: 'power1.out' }, leadSec)
       .to(el, { opacity: 0, duration: 0.5, ease: 'power1.in', onComplete: () => el.remove() }, `+=${holdSec}`)
     return tl
   }
@@ -348,15 +356,16 @@ export const playDeclaration = (
   const targetX = canopyRect.left + canopyRect.width / 2
   const targetY = canopyRect.top + canopyRect.height * 0.45
 
-  // 登場：すっと出して holdSec 読ませる。スケールは戻すので、文字の自然位置は分割時の計測値と一致する。
+  // 登場：leadSec の“間”をおいてから、すっと出して holdSec 読ませる。
+  // スケールは戻すので、文字の自然位置は分割時の計測値と一致する。
   tl.fromTo(
     el,
     { opacity: 0, scale: 0.82 },
-    { opacity: 1, scale: 1, duration: 0.45, ease: 'back.out(1.6)' },
-    0
+    { opacity: 1, scale: 1, duration: DECLARATION_ENTRANCE_SEC, ease: 'back.out(1.6)' },
+    leadSec
   )
 
-  const absorbStart = 0.45 + holdSec
+  const absorbStart = leadSec + DECLARATION_ENTRANCE_SEC + holdSec
 
   // 文字ごとに：分割時点の中心を計測し、木へ向かうデルタを算出して飛ばす。
   // 飛びながらグリフをちらつかせ（マトリックス分解）、縮小・緑へ色シフト・フェードして木に消える。
@@ -390,7 +399,11 @@ export const playDeclaration = (
     )
   })
 
-  // 吸収到達に合わせ、キャノピー位置に短い発光を出して「木が明るくなる」感を作る。
+  // 全文字が吸収しきる時刻＝最後の文字の tween 終了時刻。文字数が多くてもこの後に木が反応する。
+  const charCount = split.chars.length
+  const absorbEnd = absorbStart + Math.max(0, charCount - 1) * ABSORB_STAGGER + absorbSec
+
+  // 吸収完了に合わせ、キャノピー位置に短い発光を出して「木が明るくなる」感を作る。
   const layerRect = layer.getBoundingClientRect()
   const glow = makeEl(
     layer,
@@ -399,7 +412,8 @@ export const playDeclaration = (
       'filter:blur(8px);will-change:transform,opacity;' +
       'background:radial-gradient(circle, rgba(150,255,180,0.85) 0%, rgba(120,245,150,0.4) 40%, rgba(120,245,150,0) 70%);'
   )
-  const glowAt = absorbStart + absorbSec * 0.6
+  // 分解＋吸収がすべて終わってから波紋・発光を出す。
+  const glowAt = absorbEnd
   tl.fromTo(
     glow,
     { scale: 0, opacity: 0 },
@@ -409,6 +423,16 @@ export const playDeclaration = (
     glow,
     { opacity: 0, duration: 0.7, ease: 'power2.in', onComplete: () => glow.remove() },
     glowAt + 0.4
+  )
+
+  // 吸収到達に合わせ、樹冠（canvas）へ波紋トリガーを送る。
+  // CenterTree がこれを受けて、レイン（上→下）とは別に中央から波紋を1つ広げる。
+  tl.call(
+    () => {
+      canopy.dispatchEvent(new CustomEvent('vision:absorb'))
+    },
+    undefined,
+    glowAt
   )
 
   // 完走時に SplitText を戻し、テキスト要素を破棄する。

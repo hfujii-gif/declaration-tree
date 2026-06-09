@@ -152,6 +152,27 @@ const CenterTree = forwardRef<HTMLDivElement, CenterTreeProps>(function CenterTr
       })
     }
 
+    // 吸収演出（#44）の波紋。宣言が木に吸い込まれた瞬間、樹冠中央から外へ広がる光の輪。
+    // レイン（上→下の流れ）とは別レイヤーの挙動として、通過する文字を一瞬白く強く光らせる。
+    const RIPPLE_X = 250 // 樹冠中央（canvas座標）
+    const RIPPLE_Y = 150
+    const RIPPLE_MAX_AGE = 1200 // 波紋の寿命（ミリ秒）。吸収がゆっくりなのに合わせて広がりも穏やかに。
+    const RIPPLE_MAX_R = 260 // 広がりきる半径
+    const RIPPLE_BAND = 26 // 前縁の太さ（この帯に入った文字が光る）
+    const ripples: { x: number; y: number; age: number }[] = []
+
+    // ある座標が、現在広がっている波紋の前縁にどれだけ近いか（0〜1）。複数の波紋の最大値を返す。
+    const rippleBoost = (x: number, y: number): number => {
+      let boost = 0
+      for (const rp of ripples) {
+        const prog = rp.age / RIPPLE_MAX_AGE
+        const radius = prog * RIPPLE_MAX_R
+        const near = 1 - Math.min(1, Math.abs(Math.hypot(x - rp.x, y - rp.y) - radius) / RIPPLE_BAND)
+        if (near > 0) boost = Math.max(boost, near * (1 - prog)) // 末期ほど弱める
+      }
+      return boost
+    }
+
     // 現在の状態を1フレーム描画する。透明オーバーレイなので毎回クリアして軌跡を alpha で表現する。
     const draw = (): void => {
       ctx.clearRect(0, 0, CANOPY_W, CANOPY_H)
@@ -174,7 +195,13 @@ const CenterTree = forwardRef<HTMLDivElement, CenterTreeProps>(function CenterTr
           if (row < 0 || row >= c.rows) continue
           if (!c.chars[row]) c.chars[row] = pick()
           const y = c.topY + row * LINE_HEIGHT + LINE_HEIGHT / 2
-          if (k === 0) {
+          const boost = rippleBoost(c.x, y)
+          if (boost > 0.04) {
+            // 波紋の前縁：吸収の波が通過する瞬間、文字を白く強く光らせる（中央から広がる輪）。
+            ctx.shadowColor = 'rgba(190,255,215,0.95)'
+            ctx.shadowBlur = 6 + 12 * boost
+            ctx.fillStyle = `rgba(235,255,240,${Math.min(1, 0.5 + boost)})`
+          } else if (k === 0) {
             // ヘッド：白〜淡緑で強く、緑のグローを乗せる。
             ctx.shadowColor = 'rgba(90,240,130,0.9)'
             ctx.shadowBlur = 8
@@ -204,20 +231,30 @@ const CenterTree = forwardRef<HTMLDivElement, CenterTreeProps>(function CenterTr
       last = now
       if (dt > 100) dt = 100 // タブ復帰時などの巨大 dt を抑える（一気に飛ばさない）
 
-      for (const c of columns) {
-        const prevHead = Math.floor(c.head)
-        c.head += c.speed * dt
-        const newHead = Math.floor(c.head)
-        if (newHead !== prevHead) {
-          // ヘッド前進時に新しい文字を割り当て、ときどき軌跡中の文字を差し替えてチラつかせる。
-          if (newHead >= 0 && newHead < c.rows) c.chars[newHead] = pick()
-          if (Math.random() < 0.3) c.chars[(Math.random() * c.rows) | 0] = pick()
-        }
-        // 末尾まで落ちきったらリセット（配列は fill で再利用＝メモリを確保しない）。
-        if (c.head - TRAIL > c.rows) {
-          c.head = -Math.random() * 6
-          c.speed = 0.004 + Math.random() * 0.008
-          c.chars.fill('')
+      // 波紋（吸収時）の寿命を進め、広がりきったものを捨てる。
+      for (let i = ripples.length - 1; i >= 0; i--) {
+        ripples[i].age += dt
+        if (ripples[i].age >= RIPPLE_MAX_AGE) ripples.splice(i, 1)
+      }
+
+      // 波紋が広がっている間は、上→下のレインの流れを止める（波紋だけが動く）。
+      // 波紋が消えたら通常の流れを再開する。
+      if (ripples.length === 0) {
+        for (const c of columns) {
+          const prevHead = Math.floor(c.head)
+          c.head += c.speed * dt
+          const newHead = Math.floor(c.head)
+          if (newHead !== prevHead) {
+            // ヘッド前進時に新しい文字を割り当て、ときどき軌跡中の文字を差し替えてチラつかせる。
+            if (newHead >= 0 && newHead < c.rows) c.chars[newHead] = pick()
+            if (Math.random() < 0.3) c.chars[(Math.random() * c.rows) | 0] = pick()
+          }
+          // 末尾まで落ちきったらリセット（配列は fill で再利用＝メモリを確保しない）。
+          if (c.head - TRAIL > c.rows) {
+            c.head = -Math.random() * 6
+            c.speed = 0.004 + Math.random() * 0.008
+            c.chars.fill('')
+          }
         }
       }
       draw()
@@ -254,6 +291,15 @@ const CenterTree = forwardRef<HTMLDivElement, CenterTreeProps>(function CenterTr
     }
     document.addEventListener('visibilitychange', onVisibility)
 
+    // 吸収演出（#44）からの波紋トリガー。宣言が木に届いた瞬間、樹冠中央から波紋を1つ広げる。
+    // playDeclaration が canopy（この canvas）に 'vision:absorb' を dispatch する。
+    const onAbsorb = (): void => {
+      if (reduced) return
+      ripples.push({ x: RIPPLE_X, y: RIPPLE_Y, age: 0 })
+      if (!running && !document.hidden) start() // 念のため停止中なら再開
+    }
+    canvas.addEventListener('vision:absorb', onAbsorb)
+
     // DPR が変わる環境変化（別モニタへの移動など）に追従して描き直す。
     const onResize = (): void => setup()
     window.addEventListener('resize', onResize)
@@ -261,6 +307,7 @@ const CenterTree = forwardRef<HTMLDivElement, CenterTreeProps>(function CenterTr
     return () => {
       stop()
       document.removeEventListener('visibilitychange', onVisibility)
+      canvas.removeEventListener('vision:absorb', onAbsorb)
       window.removeEventListener('resize', onResize)
     }
   }, [])

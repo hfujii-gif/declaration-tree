@@ -1,11 +1,11 @@
-// 背景レイヤー全体（#43 サイバー化）。深い藍〜黒のデジタル基調。
+// 背景レイヤー全体（#43 サイバー化）。明るい青のデジタル基調。木の後ろを中心に明るくにじませる。
 .background {
   position: absolute;
   inset: 0;
   z-index: 0;
   overflow: hidden;
   background:
-    radial-gradient(120% 80% at 50% 18%, var(--color-cyber-bg-2) 0%, var(--color-cyber-bg) 60%),
+    radial-gradient(120% 95% at 50% 58%, var(--color-cyber-bg-2) 0%, var(--color-cyber-bg) 68%),
     var(--color-cyber-bg);
 }
 
@@ -94,7 +94,8 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: radial-gradient(140% 120% at 50% 60%, transparent 55%, rgba(5, 11, 26, 0.55) 100%);
+  // 明るい背景に合わせ、四隅をうっすら青く締める程度の軽いビネットにする。
+  background: radial-gradient(140% 120% at 50% 55%, transparent 62%, rgba(12, 78, 130, 0.28) 100%);
   animation: holo-flicker 6s ease-in-out infinite;
 }
 

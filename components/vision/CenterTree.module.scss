@@ -11,6 +11,14 @@
   transform: translateX(-50%) scale(1.05);
 }
 
+// 木の内側ラッパー。マイルストーンのパルス（pulseTree）はこの要素を拡大→戻すため、
+// 幹・枝（SVG）と樹冠レイン（canvas）が一体でパルスする。
+.treeInner {
+  position: relative;
+  display: inline-block;
+  transform-origin: bottom center;
+}
+
 .tree {
   width: 360px;
   height: 468px;
@@ -18,12 +26,12 @@
   overflow: visible;
 }
 
-// 発光する幹（太めの塊）。縦グラデーションで塗り、CSSの drop-shadow でシアンのグローをまとわせる。
+// 発光する幹（太めの塊）。縦グラデーション（上が金色・根元が茶）で塗り、暖色のグローをまとわせる。
 .trunk {
   fill: url(#cyberTrunk);
   filter:
-    drop-shadow(0 0 4px var(--color-cyber-glow))
-    drop-shadow(0 0 9px var(--color-cyber-glow-2));
+    drop-shadow(0 0 4px var(--color-trunk-glow))
+    drop-shadow(0 0 9px rgba(180, 110, 40, 0.7));
 }
 // 幹グラデーションの色（上が明るく、根元がシアン寄り）。
 .trunkStopTop {
@@ -33,16 +41,16 @@
   stop-color: var(--color-cyber-trunk-bottom);
 }
 
-// 枝は白〜薄い水色の発光ライン。太→細でテーパーさせ、シアンのグローをまとわせる。
+// 枝は金茶の発光ライン。太→細でテーパーさせ、暖色のグローをまとわせる。
 .branchMain,
 .branchSub,
 .branchTwig {
   fill: none;
-  stroke: var(--color-cyber-line);
+  stroke: var(--color-branch);
   stroke-linecap: round;
   filter:
-    drop-shadow(0 0 3px var(--color-cyber-glow))
-    drop-shadow(0 0 6px var(--color-cyber-glow-2));
+    drop-shadow(0 0 3px var(--color-trunk-glow))
+    drop-shadow(0 0 6px rgba(180, 110, 40, 0.6));
 }
 .branchMain {
   stroke-width: 3.4;
@@ -75,61 +83,44 @@
   }
 }
 
-// キャノピー＝光の粒子の塊。stage が上がるほど大きく育つ（下端寄り基準で上・外へ広がる）。
+// 樹冠＝マトリックス・デジタルレインを描く canvas。SVGの木（360×468）の樹冠位置に重ねる。
+// アニメーション本体は JS(rAF) 側。CSS は配置と stage 拡大・満開発光の見た目だけを担う。
+// stage が上がるほど下端基準で拡大する（下・外へ広がる）。
 .canopy {
-  transform-box: fill-box;
+  position: absolute;
+  left: -70px;
+  top: 0;
+  width: 500px;
+  height: 380px;
   transform-origin: center bottom;
   transition: transform 1.2s ease, filter 0.8s ease;
   transform: scale(1);
+  filter: drop-shadow(0 0 5px var(--color-leaf-glow));
+  pointer-events: none;
 }
 
-// 個々の光の粒子。シアンのグローをまとい、ゆっくり明滅（twinkle）する。
-// animationDelay / animationDuration は要素側の inline style で個体ごとにばらつかせる。
-.particle {
-  fill: var(--color-particle);
-  filter: drop-shadow(0 0 2px var(--color-cyber-glow));
-  transform-box: fill-box;
-  transform-origin: center;
-  animation-name: twinkle;
-  animation-timing-function: ease-in-out;
-  animation-iteration-count: infinite;
-}
-
-@keyframes twinkle {
-  0%,
-  100% {
-    opacity: 0.35;
-    transform: scale(0.85);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.1);
-  }
-}
-
-// stage が上がるほどキャノピー（粒子群）が大きく育ち、全体の発光も強まる。
+// stage が上がるほど樹冠（緑レイン）が大きく育ち、緑の発光も強まる。
+// 最初からモリモリなので拡大は控えめにし、主に発光で“成長感”を出す。
 .treeWrap[data-stage='1'] .canopy {
-  transform: scale(1.12);
-  filter: drop-shadow(0 0 6px rgba(56, 225, 255, 0.35));
+  transform: scale(1.06);
+  filter: drop-shadow(0 0 7px rgba(60, 224, 106, 0.4));
 }
 .treeWrap[data-stage='2'] .canopy {
-  transform: scale(1.24);
-  filter: drop-shadow(0 0 9px rgba(56, 225, 255, 0.45));
+  transform: scale(1.12);
+  filter: drop-shadow(0 0 10px rgba(60, 224, 106, 0.5));
 }
 .treeWrap[data-stage='3'] .canopy {
-  transform: scale(1.36);
-  filter: drop-shadow(0 0 12px rgba(56, 225, 255, 0.55));
+  transform: scale(1.18);
+  filter: drop-shadow(0 0 13px rgba(60, 224, 106, 0.6));
 }
 .treeWrap[data-stage='4'] .canopy {
-  transform: scale(1.48);
-  filter: drop-shadow(0 0 16px rgba(56, 225, 255, 0.65));
+  transform: scale(1.24);
+  filter: drop-shadow(0 0 17px rgba(60, 224, 106, 0.7));
 }
 
-// 10,000人達成後の満開定着（#45）。粒子の発光を最大化し、白く強く輝かせる。
-.treeWrap[data-bloomed='true'] .particle {
-  fill: #ffffff;
-  filter: drop-shadow(0 0 4px var(--color-cyber-glow)) drop-shadow(0 0 8px #ffffff);
-}
+// 10,000人達成後の満開定着（#45）。樹冠の緑レインの発光を最大化し、白〜淡緑に強く輝かせる。
+// 文字色はキャンバス描画側が制御するため、ここは輝度アップ＋強い緑グローで白熱させる。
 .treeWrap[data-bloomed='true'] .canopy {
-  filter: drop-shadow(0 0 22px rgba(120, 240, 255, 0.85));
+  filter: brightness(1.5) drop-shadow(0 0 10px #ffffff)
+    drop-shadow(0 0 24px rgba(120, 245, 150, 0.85));
 }

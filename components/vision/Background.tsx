@@ -1,17 +1,19 @@
 import styles from './Background.module.scss'
 
-// /vision の背景レイヤー。空・大地・流れる雲を描画する。
-// 雲の動きは CSS アニメーションのみで実現し、JS タイマーを使わない（メモリリークの心配がない）。
+// /vision の背景レイヤー（#43 サイバー化）。
+// デジタル/ホログラム調の背景を描画する。旧・空/太陽/雲/大地は廃止。
+// 動きはすべて CSS アニメーションで実現し、JS タイマー・rAF を使わない（長時間稼働でもメモリリークしない）。
 export default function Background() {
   return (
     <div className={styles.background} aria-hidden="true">
-      <div className={styles.sun} />
-      <div className={styles.clouds}>
-        <span className={`${styles.cloud} ${styles.cloud1}`} />
-        <span className={`${styles.cloud} ${styles.cloud2}`} />
-        <span className={`${styles.cloud} ${styles.cloud3}`} />
-      </div>
-      <div className={styles.ground} />
+      {/* 中央付近からにじむアンビエント発光 */}
+      <div className={styles.ambient} />
+      {/* 遠近感のある床グリッド（奥から手前へ広がる） */}
+      <div className={styles.grid} />
+      {/* 全面に薄くかかるスキャンライン */}
+      <div className={styles.scanlines} />
+      {/* ゆっくり明滅するホログラムの揺らぎ */}
+      <div className={styles.flicker} />
     </div>
   )
 }

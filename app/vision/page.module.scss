@@ -19,5 +19,10 @@
   font-weight: bold;
   text-align: center;
   white-space: nowrap;
-  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+  letter-spacing: 0.04em;
+  // サイバー調（#43）。シアンの発光で大型ビジョンでも視認しやすくする。
+  text-shadow:
+    0 0 8px var(--color-cyber-glow),
+    0 0 18px var(--color-cyber-glow-2),
+    0 2px 6px rgba(0, 0, 0, 0.6);
 }

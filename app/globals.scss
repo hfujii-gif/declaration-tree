@@ -32,6 +32,17 @@
   /* /vision 10,000人達成後の満開（#11）。葉色を明るくする。 */
   --color-bloom-leaf: #5FB97A;
 
+  /* /vision サイバー化（#43）。発光する木＋デジタル背景の配色。
+     旧（空・大地・雲・緑の葉）の変数は #44 の葉撤去まで残す。 */
+  --color-cyber-bg: #050B1A;        /* 背景基調（深い藍） */
+  --color-cyber-bg-2: #0A1838;      /* 背景グラデ中間 */
+  --color-cyber-bg-glow: #0E2A4D;   /* 中央のアンビエント発光 */
+  --color-cyber-line: #DFF6FF;      /* 幹・枝の発光ライン（白〜薄水色） */
+  --color-cyber-glow: #38E1FF;      /* グロー色（シアン） */
+  --color-cyber-glow-2: #6EA8FF;    /* 補助グロー（青寄り） */
+  --color-particle: #BFEBFF;        /* キャノピーの光の粒子 */
+  --color-grid: rgba(56, 225, 255, 0.16); /* 背景グリッド線 */
+
   /* /admin 管理画面（#12）。白基調・緑(--color-accent)を差し色として使う。 */
   --color-admin-bg: #F3F4F6;
   --color-admin-surface: #FFFFFF;

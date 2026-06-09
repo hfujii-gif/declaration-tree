@@ -1,4 +1,4 @@
-// 木の配置。画面中央下に立たせ、stage に応じて下端を基準に拡大する。
+// 木の配置（#43 サイバー化）。画面中央下に立たせ、stage に応じて下端を基準に拡大する。
 .treeWrap {
   position: absolute;
   left: 50%;
@@ -7,7 +7,7 @@
   transform-origin: bottom center;
   // 段階成長を滑らかに見せる。
   transition: transform 1.2s ease;
-  // 木全体のサイズは一定にし、stage による成長は葉の塊（.canopy）の拡大で表現する。
+  // 木全体のサイズは一定にし、stage による成長はキャノピー（.canopy）の拡大で表現する。
   transform: translateX(-50%) scale(1.05);
 }
 
@@ -18,81 +18,102 @@
   overflow: visible;
 }
 
-// 地面の落ち影。
-.groundShadow {
-  fill: #000000;
-  opacity: 0.18;
+// 幹・枝は白〜薄い水色の発光ライン。CSSの drop-shadow でグロー（シアン）をまとわせる。
+.trunk,
+.branchMain,
+.branchTwig {
+  fill: none;
+  stroke: var(--color-cyber-line);
+  stroke-linecap: round;
+  filter:
+    drop-shadow(0 0 3px var(--color-cyber-glow))
+    drop-shadow(0 0 7px var(--color-cyber-glow-2));
 }
-
-// 幹は木目グラデーションで塗る。
 .trunk {
-  fill: url(#trunkGrad);
-}
-
-// 幹の木目線（細い陰影の筋）。
-.bark {
-  fill: none;
-  stroke: var(--color-trunk-dark);
-  stroke-width: 1.5;
-  stroke-linecap: round;
-  opacity: 0.4;
-}
-
-// 木目グラデーションの色（円柱状の陰影）。
-.trunkStopLight {
-  stop-color: var(--color-trunk-light);
-}
-.trunkStopMid {
-  stop-color: var(--color-trunk);
-}
-.trunkStopDark {
-  stop-color: var(--color-trunk-dark);
-}
-
-// 枝は幹と同じ木目色のグラデーションで描く。太→細でテーパーさせる。
-.branches path {
-  fill: none;
-  stroke: url(#trunkGrad);
-  stroke-linecap: round;
+  stroke-width: 5;
 }
 .branchMain {
-  stroke-width: 7;
+  stroke-width: 3;
 }
 .branchTwig {
-  stroke-width: 3.5;
+  stroke-width: 1.6;
+  opacity: 0.85;
 }
 
-// 葉のかたまりは単色（一番後ろの濃緑）で塗る。重なっても継ぎ目が出ず一枚の塊に見える。
-.clump {
-  fill: var(--color-leaf-3);
-  // 満開へ移るとき葉色をなめらかに切り替える。
-  transition: fill 0.8s ease;
+// 幹・枝のグローをごくゆっくり脈動させ、ホログラム感を出す。
+.trunkGroup,
+.branches {
+  animation: line-pulse 5s ease-in-out infinite;
+}
+.branches {
+  animation-delay: -2.5s;
 }
 
-// 10,000人達成後の満開定着（#11）。葉色を明るくし、キャノピーに金色の発光をまとわせる。
-.treeWrap[data-bloomed='true'] .clump {
-  fill: var(--color-bloom-leaf);
-}
-.treeWrap[data-bloomed='true'] .canopy {
-  filter: url(#leafShadow) drop-shadow(0 0 12px rgba(255, 215, 0, 0.7));
+@keyframes line-pulse {
+  0%,
+  100% {
+    opacity: 0.9;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
-// stage が上がるほど、中央の葉の塊そのものが大きく育つ（下端を基準に上・外へ広がる）。
+// キャノピー＝光の粒子の塊。stage が上がるほど大きく育つ（下端寄り基準で上・外へ広がる）。
 .canopy {
   transform-box: fill-box;
   transform-origin: center bottom;
-  transition: transform 1.2s ease;
+  transition: transform 1.2s ease, filter 0.8s ease;
   transform: scale(1);
 }
+
+// 個々の光の粒子。シアンのグローをまとい、ゆっくり明滅（twinkle）する。
+// animationDelay / animationDuration は要素側の inline style で個体ごとにばらつかせる。
+.particle {
+  fill: var(--color-particle);
+  filter: drop-shadow(0 0 2px var(--color-cyber-glow));
+  transform-box: fill-box;
+  transform-origin: center;
+  animation-name: twinkle;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+
+@keyframes twinkle {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+}
+
+// stage が上がるほどキャノピー（粒子群）が大きく育ち、全体の発光も強まる。
 .treeWrap[data-stage='1'] .canopy {
   transform: scale(1.12);
+  filter: drop-shadow(0 0 6px rgba(56, 225, 255, 0.35));
 }
 .treeWrap[data-stage='2'] .canopy {
   transform: scale(1.24);
+  filter: drop-shadow(0 0 9px rgba(56, 225, 255, 0.45));
 }
 .treeWrap[data-stage='3'] .canopy {
   transform: scale(1.36);
+  filter: drop-shadow(0 0 12px rgba(56, 225, 255, 0.55));
 }
 .treeWrap[data-stage='4'] .canopy {
   transform: scale(1.48);
+  filter: drop-shadow(0 0 16px rgba(56, 225, 255, 0.65));
+}
+
+// 10,000人達成後の満開定着（#45）。粒子の発光を最大化し、白く強く輝かせる。
+.treeWrap[data-bloomed='true'] .particle {
+  fill: #ffffff;
+  filter: drop-shadow(0 0 4px var(--color-cyber-glow)) drop-shadow(0 0 8px #ffffff);
+}
+.treeWrap[data-bloomed='true'] .canopy {
+  filter: drop-shadow(0 0 22px rgba(120, 240, 255, 0.85));
 }

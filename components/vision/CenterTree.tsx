@@ -4,17 +4,54 @@ import styles from './CenterTree.module.scss'
 type CenterTreeProps = {
   // 成長段階（0〜4）。累計がマイルストーンを超えるごとに上がる。
   stage: number
-  // 10,000人達成後の満開状態。true で葉色が明るくなり、キャノピーに金色の発光をまとう（#11）。
+  // 10,000人達成後の満開状態。true で粒子の発光が最大化する（#11/#45）。
   // 満開は count>=10000 由来の静的状態。フィナーレ演出は lib/animations.ts の playFullBloom が担当する。
   bloomed?: boolean
 }
 
-// 中央に常設する枝分かれの木。stage が上がるほど大きく・葉が増える。
-// 葉のかたまりは単色（濃緑）のデコボコした有機的なシルエットの塊として描く。
-// 単色にすることで重なりの継ぎ目が出ず、一枚の塊として見える。
-// サイズ/葉の量の変化は CSS の transition で滑らかに行う。
-// 祝祭的なパルスや達成テキストなどの演出は #11（lib/animations.ts）が担当する。
-// ref は演出（パルス・満開ポップ）の対象を掴むため親へ公開する。
+// キャノピー（光の粒子の塊）の中心と広がり（viewBox 0 0 200 260 基準）。
+const CANOPY_CX = 100
+const CANOPY_CY = 92
+const CANOPY_RX = 70
+const CANOPY_RY = 52
+// 粒子の数。大画面でも軽い範囲に抑える（CSSの明滅のみ・JSタイマーなし）。
+const PARTICLE_COUNT = 90
+// 黄金角。これで均等な“ひまわり配置”になり、乱数なしでも自然に密集する。
+const GOLDEN_ANGLE = 2.399963229728653
+
+// キャノピー領域に光の粒子を均等散布する（決定的な計算＝SSRとクライアントで一致しハイドレーション不整合が出ない）。
+// 乱数を使わないため毎回同じ配置になり、JSタイマーも持たない（長時間稼働でも安全）。
+type Particle = { cx: number; cy: number; r: number; delay: number; dur: number }
+
+const buildParticles = (): Particle[] => {
+  const particles: Particle[] = []
+  for (let i = 0; i < PARTICLE_COUNT; i++) {
+    // ひまわり配置：中心から外側へ均等に広がる。
+    const t = (i + 0.5) / PARTICLE_COUNT
+    const radius = Math.sqrt(t)
+    const angle = i * GOLDEN_ANGLE
+    const cx = CANOPY_CX + Math.cos(angle) * radius * CANOPY_RX
+    // キャノピーは上に膨らむ卵形にしたいので、上方向に少し持ち上げる。
+    const cy = CANOPY_CY + Math.sin(angle) * radius * CANOPY_RY - (1 - radius) * 6
+    // 外周ほど小さく、中心ほど大きい粒子にして塊感を出す。
+    const r = 1.4 + (1 - radius) * 2.2
+    // 明滅のばらつき（決定的）。
+    const delay = (i % 12) * 0.28
+    const dur = 2.4 + (i % 5) * 0.5
+    particles.push({ cx, cy, r, delay, dur })
+  }
+  return particles
+}
+
+// モジュール読み込み時に一度だけ算出（決定的なので使い回せる）。
+const PARTICLES = buildParticles()
+
+// 中央に常設するサイバー風の木（#43）。
+// 幹・枝は白〜薄い水色の発光ライン、葉エリアは光の粒子が密集したキャノピーで表現する。
+// stage が上がるほどキャノピーが大きく・明るくなる。満開（data-bloomed）で発光が最大化する。
+// すべて SVG＋CSSアニメーションで描き、JSタイマー・rAFを持たない（メモリリーク対策）。
+// 祝祭的なパルスや満開フィナーレ演出は #45（lib/animations.ts）が担当する。
+// ref は演出（パルス・満開ポップ）と #44 の吸収先座標算出のため親へ公開する。
 const CenterTree = forwardRef<HTMLDivElement, CenterTreeProps>(function CenterTree(
   { stage, bloomed = false },
   ref
@@ -28,31 +65,15 @@ const CenterTree = forwardRef<HTMLDivElement, CenterTreeProps>(function CenterTr
       aria-hidden="true"
     >
       <svg className={styles.tree} viewBox="0 0 200 260" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          {/* 幹・枝の木目グラデーション（円柱状の陰影） */}
-          <linearGradient id="trunkGrad" x1="0" y1="0" x2="1" y2="0">
-            <stop className={styles.trunkStopLight} offset="0%" />
-            <stop className={styles.trunkStopMid} offset="45%" />
-            <stop className={styles.trunkStopDark} offset="100%" />
-          </linearGradient>
-          {/* 葉のかたまりに落とすやわらかい影 */}
-          <filter id="leafShadow" x="-25%" y="-25%" width="150%" height="150%">
-            <feDropShadow dx="0" dy="5" stdDeviation="5" floodColor="#000000" floodOpacity="0.25" />
-          </filter>
-        </defs>
+        {/* 幹（発光ライン）。根元が広がるテーパー形のシルエットを細い発光線で描く。 */}
+        <g className={styles.trunkGroup}>
+          <path
+            className={styles.trunk}
+            d="M84 254 C82 226 80 206 90 178 C94 166 96 154 98 140 L102 140 C104 154 106 166 110 178 C120 206 118 226 116 254"
+          />
+        </g>
 
-        {/* 地面の落ち影 */}
-        <ellipse className={styles.groundShadow} cx="100" cy="252" rx="58" ry="9" />
-
-        {/* 幹（根元が広がるテーパー形）＋木目線 */}
-        <path
-          className={styles.trunk}
-          d="M84 254 C82 226 80 206 90 178 C94 166 96 154 98 140 L102 140 C104 154 106 166 110 178 C120 206 118 226 116 254 Z"
-        />
-        <path className={styles.bark} d="M96 246 C95 216 93 186 98 156" />
-        <path className={styles.bark} d="M104 242 C105 214 107 188 102 160" />
-
-        {/* 枝（太→細でテーパー）。左右で本数・角度を変えて非対称にする。 */}
+        {/* 枝（発光ライン）。左右で本数・角度を変えて非対称にする。 */}
         <g className={styles.branches}>
           <path className={styles.branchMain} d="M97 176 C82 170 70 160 58 146" />
           <path className={styles.branchMain} d="M103 174 C118 167 128 156 141 138" />
@@ -62,25 +83,20 @@ const CenterTree = forwardRef<HTMLDivElement, CenterTreeProps>(function CenterTr
           <path className={styles.branchTwig} d="M132 146 C138 140 142 134 145 126" />
         </g>
 
-        {/* 葉のかたまり（一枚の塊）。stage が上がると、この中央の塊そのものが大きく育つ。
-            単色のデコボコしたシルエットを重ねて継ぎ目のない塊にし、左右下のふくらみで枝先を覆う。
-            満開時（data-bloomed）は葉色が明るくなり、金色の発光をまとう。 */}
-        <g className={styles.canopy} filter="url(#leafShadow)">
-          {/* 中央の塊 */}
-          <path
-            className={styles.clump}
-            d="M46 110 C40 88 52 64 76 58 C84 44 106 42 118 52 C136 42 162 56 158 84 C172 96 164 120 148 130 C150 148 126 158 110 150 C98 160 80 158 72 146 C54 152 40 136 46 118 C36 112 38 102 46 110 Z"
-          />
-          {/* 左下の大きめクラスター */}
-          <path
-            className={styles.clump}
-            d="M34 132 C26 112 40 92 62 90 C72 80 92 82 98 96 C110 104 108 124 94 132 C98 150 76 160 60 152 C44 156 30 146 34 132 Z"
-          />
-          {/* 右下の大きめクラスター */}
-          <path
-            className={styles.clump}
-            d="M108 128 C104 108 118 92 138 92 C150 84 168 92 168 108 C178 116 172 136 156 138 C156 156 132 162 120 150 C106 148 102 136 108 128 Z"
-          />
+        {/* キャノピー＝光の粒子の塊（#44 のパーティクル吸収先）。
+            stage が上がるとこの塊そのものが大きく育つ（CSSの data-stage で scale）。
+            data-canopy は #44 が吸収先の中心座標を算出するためのフック。 */}
+        <g className={styles.canopy} data-canopy="true">
+          {PARTICLES.map((p, i) => (
+            <circle
+              key={i}
+              className={styles.particle}
+              cx={p.cx}
+              cy={p.cy}
+              r={p.r}
+              style={{ animationDelay: `${p.delay}s`, animationDuration: `${p.dur}s` }}
+            />
+          ))}
         </g>
       </svg>
     </div>

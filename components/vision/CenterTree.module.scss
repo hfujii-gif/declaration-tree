@@ -18,34 +18,50 @@
   overflow: visible;
 }
 
-// 幹・枝は白〜薄い水色の発光ライン。CSSの drop-shadow でグロー（シアン）をまとわせる。
-.trunk,
+// 発光する幹（太めの塊）。縦グラデーションで塗り、CSSの drop-shadow でシアンのグローをまとわせる。
+.trunk {
+  fill: url(#cyberTrunk);
+  filter:
+    drop-shadow(0 0 4px var(--color-cyber-glow))
+    drop-shadow(0 0 9px var(--color-cyber-glow-2));
+}
+// 幹グラデーションの色（上が明るく、根元がシアン寄り）。
+.trunkStopTop {
+  stop-color: var(--color-cyber-trunk-top);
+}
+.trunkStopBottom {
+  stop-color: var(--color-cyber-trunk-bottom);
+}
+
+// 枝は白〜薄い水色の発光ライン。太→細でテーパーさせ、シアンのグローをまとわせる。
 .branchMain,
+.branchSub,
 .branchTwig {
   fill: none;
   stroke: var(--color-cyber-line);
   stroke-linecap: round;
   filter:
     drop-shadow(0 0 3px var(--color-cyber-glow))
-    drop-shadow(0 0 7px var(--color-cyber-glow-2));
-}
-.trunk {
-  stroke-width: 5;
+    drop-shadow(0 0 6px var(--color-cyber-glow-2));
 }
 .branchMain {
-  stroke-width: 3;
+  stroke-width: 3.4;
+}
+.branchSub {
+  stroke-width: 2.2;
+  opacity: 0.92;
 }
 .branchTwig {
-  stroke-width: 1.6;
-  opacity: 0.85;
+  stroke-width: 1.4;
+  opacity: 0.8;
 }
 
 // 幹・枝のグローをごくゆっくり脈動させ、ホログラム感を出す。
-.trunkGroup,
-.branches {
+.trunk {
   animation: line-pulse 5s ease-in-out infinite;
 }
 .branches {
+  animation: line-pulse 5s ease-in-out infinite;
   animation-delay: -2.5s;
 }
 

@@ -30,3 +30,13 @@ export const DECLARATION_GAP_MS = 1500
 // 同時バースト時（iPad 25台同時送信など）に貯められる演出キューの上限。
 // スポットライトは同時に1つだけ再生し、超過分は捨てる（無音で打ち切らず console.warn で可視化する）。
 export const DECLARATION_MAX_QUEUE = 12
+
+// バックログ（未処理キュー）がこの件数を超えたら、ドレインを早めるため演出を短縮モードにする。
+export const DECLARATION_BACKLOG_THRESHOLD = 4
+
+// バックログ短縮モードでの各タイミング（ミリ秒）。通常時より短くしてキューの詰まりを解消する。
+export const DECLARATION_BACKLOG_LEAD_MS = 300
+export const DECLARATION_BACKLOG_HOLD_MS = 800
+export const DECLARATION_BACKLOG_ABSORB_MS = 1800
+// バックログ短縮モードでの連続表示の“間”（ミリ秒）。通常の DECLARATION_GAP_MS より短くする。
+export const DECLARATION_BACKLOG_GAP_MS = 500

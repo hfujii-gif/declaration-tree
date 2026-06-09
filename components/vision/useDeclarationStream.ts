@@ -1,7 +1,15 @@
 import { useCallback, useEffect, useRef } from 'react'
 import type { RefObject } from 'react'
 import { playDeclaration } from '@/lib/animations'
-import { DECLARATION_GAP_MS, DECLARATION_MAX_QUEUE } from '@/lib/constants'
+import {
+  DECLARATION_GAP_MS,
+  DECLARATION_MAX_QUEUE,
+  DECLARATION_BACKLOG_THRESHOLD,
+  DECLARATION_BACKLOG_LEAD_MS,
+  DECLARATION_BACKLOG_HOLD_MS,
+  DECLARATION_BACKLOG_ABSORB_MS,
+  DECLARATION_BACKLOG_GAP_MS,
+} from '@/lib/constants'
 
 // 宣言吸収演出（#44）のキュー管理フック。
 // 中央スポットライトは同時に1つだけ再生し、新着宣言は直列に1件ずつ消化する
@@ -36,7 +44,14 @@ export function useDeclarationStream(
     playingRef.current = true
     // バックログが溜まっているときは“間”と表示を短縮してドレインを早める（それでも極端には速くしない）。
     const backlog = queueRef.current.length
-    const opts = backlog > 4 ? { leadMs: 300, holdMs: 800, absorbMs: 1800 } : undefined
+    const opts =
+      backlog > DECLARATION_BACKLOG_THRESHOLD
+        ? {
+            leadMs: DECLARATION_BACKLOG_LEAD_MS,
+            holdMs: DECLARATION_BACKLOG_HOLD_MS,
+            absorbMs: DECLARATION_BACKLOG_ABSORB_MS,
+          }
+        : undefined
     const tl = playDeclaration(text, layer, tree, opts)
     currentTlRef.current = tl
     tl.eventCallback('onComplete', () => {
@@ -45,7 +60,10 @@ export function useDeclarationStream(
       if (unmountedRef.current) return
       // 次が無ければ“間”を置かず待機（新着が来たら即時再生）。あれば連続表示の間隔を空ける。
       if (queueRef.current.length === 0) return
-      const gapMs = queueRef.current.length > 4 ? 500 : DECLARATION_GAP_MS
+      const gapMs =
+        queueRef.current.length > DECLARATION_BACKLOG_THRESHOLD
+          ? DECLARATION_BACKLOG_GAP_MS
+          : DECLARATION_GAP_MS
       gapTimerRef.current = setTimeout(() => {
         gapTimerRef.current = null
         drainRef.current()

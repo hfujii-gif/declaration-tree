@@ -1,15 +1,17 @@
 // /vision のマイルストーン達成演出（GSAP）。
-// #31 でマージ済みの3レイヤー（背景・木・テキスト葉）の上に「別レイヤー」として被せる演出を提供する。
+// #43/#44 でサイバー化（発光する木・デジタルレイン樹冠・宣言テキストのパーティクル吸収）した世界観に合わせ、
+// #45 でマイルストーン／満開もサイバー風に作り直す。
 // 演出DOMは呼び出し側から渡す Celebration レイヤー要素に生成し、完走後に必ず remove する（メモリリーク対策）。
 //
-// 確定方針（Issue #11）:
+// 確定方針（Issue #45）:
 //   1. 段階的に派手さUP（2,500 → 5,000 → 7,500 → 10,000 が頂点）
-//   2. 10,000達成後は満開のまま定着（葉色・金縁発光は CenterTree の data-bloomed が担当）
-//   3. 紙吹雪・花びらは Physics2DPlugin の放物線でリアルに動かす
+//   2. 暖色（金/ピンク・紙吹雪・花びら）→ シアン/青/白のデジタル発光・データの粒・グリッチ・光のリング
+//   3. 10,000＝満開は「光が画面全体に広がる」演出。満開の定着（樹冠の発光最大化）は CenterTree の data-bloomed が担当
 //
 // 演出の質感メモ:
 //   - 光（グロー・光線）：ブラーでソフトにし、光線群はゆっくり回してきらめかせる。
 //   - 衝撃波リング：中央から一度広がって“効いてる”感を出す。
+//   - グリッチ：一瞬のスキャンライン掃引＋RGBずれフラッシュでデジタル感を出す。
 
 import { gsap } from 'gsap'
 import { SplitText } from 'gsap/SplitText'
@@ -21,9 +23,13 @@ import {
 } from '@/lib/constants'
 
 // ---- 見た目の定数（しきい値は lib/constants.ts の MILESTONES を使う。ここは演出パラメータ） ----
-const CONFETTI_COLORS = ['#FFD700', '#FF8FB1', '#7BE0AD', '#6EC1E4', '#FFFFFF']
-const PETAL_COLOR = '#FFB7C5'
-const TEXT_GOLD = '#FFD700'
+// データの粒（旧・紙吹雪）の色。シアン/白/青/淡緑のデジタル配色。
+const BIT_COLORS = ['#38E1FF', '#FFFFFF', '#6EA8FF', '#78F5A0', '#BFEBFF']
+// 達成テキストの強調色（サイバーのアクセント＝シアン）。
+const TEXT_CYAN = '#7DE9FF'
+// 発光・光輪・光線に使うシアン系のRGB（rgba 文字列を組み立てる素）。
+const GLOW_CYAN = '120, 240, 255'
+const GLOW_BLUE = '110, 168, 255'
 // 演出の起点（画面に対する%）。中央の木のキャノピー付近。
 const ORIGIN_TOP = 42
 
@@ -67,13 +73,13 @@ const addFlash = (tl: gsap.core.Timeline, layer: HTMLElement, peak: number, at: 
   )
 }
 
-// 中央から一度だけ広がる衝撃波リング（“効いてる”感の核）。
+// 中央から一度だけ広がる衝撃波リング（“効いてる”感の核）。シアンの光輪。
 const addShockwave = (tl: gsap.core.Timeline, layer: HTMLElement, at: number): void => {
   const ring = makeEl(
     layer,
     `position:absolute;top:${ORIGIN_TOP}%;left:50%;width:18vmin;height:18vmin;` +
       'transform:translate(-50%,-50%) scale(0);border-radius:50%;' +
-      'border:3px solid rgba(255,240,205,0.85);box-shadow:0 0 26px rgba(255,225,150,0.7);will-change:transform,opacity;'
+      `border:3px solid rgba(${GLOW_CYAN},0.9);box-shadow:0 0 26px rgba(${GLOW_CYAN},0.75), inset 0 0 18px rgba(${GLOW_CYAN},0.5);will-change:transform,opacity;`
   )
   tl.fromTo(
     ring,
@@ -83,13 +89,13 @@ const addShockwave = (tl: gsap.core.Timeline, layer: HTMLElement, at: number): v
   )
 }
 
-// 中央から広がる光のベール。木を一瞬包み込む（ブラーでソフトに）。
+// 中央から広がる光のベール。木を一瞬包み込む（ブラーでソフトに）。シアン〜白。
 const addGlow = (tl: gsap.core.Timeline, layer: HTMLElement, maxScale: number, at: number): void => {
   const glow = makeEl(
     layer,
     `position:absolute;top:${ORIGIN_TOP}%;left:50%;width:46vmin;height:46vmin;` +
       'transform:translate(-50%,-50%) scale(0);border-radius:50%;filter:blur(6px);will-change:transform,opacity;' +
-      'background:radial-gradient(circle, rgba(255,247,224,0.95) 0%, rgba(243,210,122,0.5) 40%, rgba(243,210,122,0) 72%);'
+      `background:radial-gradient(circle, rgba(235,252,255,0.95) 0%, rgba(${GLOW_CYAN},0.5) 40%, rgba(${GLOW_CYAN},0) 72%);`
   )
   tl.fromTo(
     glow,
@@ -99,7 +105,7 @@ const addGlow = (tl: gsap.core.Timeline, layer: HTMLElement, maxScale: number, a
   ).to(glow, { opacity: 0, duration: 0.8, ease: 'power2.in', onComplete: () => glow.remove() }, at + 0.7)
 }
 
-// 放射状の光のシャフト。幅広・低不透明・ブラーで“光の筋”にし、群全体をゆっくり回してきらめかせる。
+// 放射状の光のシャフト。幅広・低不透明・ブラーで“光の筋”にし、群全体をゆっくり回してきらめかせる。シアン/白。
 const addRays = (tl: gsap.core.Timeline, layer: HTMLElement, count: number, at: number): void => {
   const wrap = makeEl(
     layer,
@@ -110,9 +116,9 @@ const addRays = (tl: gsap.core.Timeline, layer: HTMLElement, count: number, at: 
     const ray = document.createElement('div')
     const angle = (360 / count) * i
     ray.style.cssText =
-      'position:absolute;top:0;left:0;width:14px;height:54vmin;transform-origin:top center;' +
+      'position:absolute;top:0;left:0;width:12px;height:54vmin;transform-origin:top center;' +
       `transform:translate(-50%,0) rotate(${angle}deg);opacity:0.5;` +
-      'background:linear-gradient(to bottom, rgba(255,244,210,0.85), rgba(255,244,210,0));'
+      `background:linear-gradient(to bottom, rgba(${GLOW_CYAN},0.85), rgba(${GLOW_CYAN},0));`
     wrap.appendChild(ray)
     rays.push(ray)
   }
@@ -127,20 +133,35 @@ const addRays = (tl: gsap.core.Timeline, layer: HTMLElement, count: number, at: 
   tl.to(wrap, { opacity: 0, duration: 0.8, ease: 'power1.in', onComplete: () => wrap.remove() }, at + 1.5)
 }
 
-// 紙吹雪を中央から噴き上げる（Physics2D の放物線＋回転）。
-const burstConfetti = (layer: HTMLElement, count: number, colors: string[]): void => {
+// マトリックスの文字を紙吹雪のように噴き上げる（旧・紙吹雪）。
+// 樹冠レインと同じグリフ（英数字・カタカナ）を発光する文字片として Physics2D の放物線で飛ばし、世界観を統一する。
+// wide=true：中央の噴水ではなく画面全体（横位置・角度を広く）にばらまく。満開フィナーレで画面を埋めるのに使う。
+const burstGlyphs = (
+  layer: HTMLElement,
+  count: number,
+  colors: string[],
+  wide = false
+): void => {
   for (let i = 0; i < count; i++) {
-    const size = random(8, 16)
+    const size = random(14, 30)
     const color = colors[i % colors.length]
+    const left = wide ? random(2, 98) : 50
+    const top = wide ? random(6, 58) : ORIGIN_TOP
     const piece = makeEl(
       layer,
-      `position:absolute;top:${ORIGIN_TOP}%;left:50%;width:${size}px;height:${size * 0.6}px;` +
-        `background:${color};border-radius:2px;will-change:transform,opacity;`
+      `position:absolute;top:${top}%;left:${left}%;` +
+        `font:700 ${size}px 'Courier New', 'Consolas', monospace;color:${color};` +
+        `text-shadow:0 0 8px ${color};will-change:transform,opacity;`
     )
+    piece.textContent = pickGlyph()
     gsap.to(piece, {
-      duration: random(1.6, 3),
-      physics2D: { velocity: random(320, 720), angle: random(200, 340), gravity: 700 },
-      rotation: random(-720, 720),
+      duration: random(1.8, 3.4),
+      physics2D: {
+        velocity: random(300, wide ? 860 : 720),
+        angle: wide ? random(0, 360) : random(200, 340),
+        gravity: wide ? 480 : 700,
+      },
+      rotation: random(-360, 360),
       opacity: 0,
       ease: 'none',
       onComplete: () => piece.remove(),
@@ -148,24 +169,60 @@ const burstConfetti = (layer: HTMLElement, count: number, colors: string[]): voi
   }
 }
 
-// 花びらを舞い散らす（紙吹雪より軽く、重力ゆるめでゆっくり落ちる）。
-const burstPetals = (layer: HTMLElement, count: number): void => {
-  for (let i = 0; i < count; i++) {
-    const size = random(10, 20)
-    const petal = makeEl(
-      layer,
-      `position:absolute;top:${random(28, 40)}%;left:50%;width:${size}px;height:${size}px;` +
-        `background:${PETAL_COLOR};border-radius:50% 0 50% 0;will-change:transform,opacity;`
-    )
-    gsap.to(petal, {
-      duration: random(3, 5),
-      physics2D: { velocity: random(200, 560), angle: random(180, 360), gravity: 300 },
-      rotation: random(-720, 720),
-      opacity: 0,
-      ease: 'none',
-      onComplete: () => petal.remove(),
-    })
-  }
+// 一瞬のグリッチ：スキャンライン掃引＋RGBずれフラッシュでデジタル感を出す。短時間で生成DOMを破棄する。
+const addGlitch = (tl: gsap.core.Timeline, layer: HTMLElement, at: number): void => {
+  // RGBずれ：シアン／マゼンタの全画面レイヤーを少しずらして重ね、すぐ消す。
+  const split = makeEl(
+    layer,
+    'position:absolute;inset:0;mix-blend-mode:screen;opacity:0;will-change:transform,opacity;' +
+      `background:linear-gradient(90deg, rgba(${GLOW_CYAN},0.22), rgba(255,60,160,0.18));`
+  )
+  tl.fromTo(
+    split,
+    { opacity: 0, x: -10 },
+    { opacity: 1, x: 10, duration: 0.08, ease: 'steps(2)' },
+    at
+  ).to(split, { opacity: 0, x: 0, duration: 0.18, ease: 'steps(3)', onComplete: () => split.remove() }, at + 0.08)
+
+  // スキャンライン：細い明るい帯を上→下へ素早く掃引する。
+  const scan = makeEl(
+    layer,
+    'position:absolute;left:0;right:0;top:0;height:8vmin;opacity:0;will-change:transform,opacity;' +
+      `background:linear-gradient(to bottom, rgba(${GLOW_CYAN},0), rgba(235,252,255,0.5), rgba(${GLOW_CYAN},0));`
+  )
+  tl.fromTo(
+    scan,
+    { yPercent: -100, opacity: 0.9 },
+    {
+      yPercent: 1200,
+      opacity: 0.3,
+      duration: 0.5,
+      ease: 'power1.in',
+      onComplete: () => scan.remove(),
+    },
+    at
+  )
+}
+
+// 満開フィナーレの主役：木のキャノピー起点からシアン〜白の光が画面全体を覆うまで広がって満ちる。
+const addScreenBloom = (tl: gsap.core.Timeline, layer: HTMLElement, at: number): void => {
+  const bloom = makeEl(
+    layer,
+    `position:absolute;top:${ORIGIN_TOP}%;left:50%;width:60vmax;height:60vmax;` +
+      'transform:translate(-50%,-50%) scale(0);border-radius:50%;filter:blur(10px);will-change:transform,opacity;' +
+      `background:radial-gradient(circle, rgba(245,253,255,0.98) 0%, rgba(${GLOW_CYAN},0.7) 35%, rgba(${GLOW_BLUE},0.35) 60%, rgba(${GLOW_BLUE},0) 80%);`
+  )
+  // 画面全体を満たすまで広がる → ゆっくり減衰して余韻を残す。
+  tl.fromTo(
+    bloom,
+    { scale: 0, opacity: 0 },
+    { scale: 1.6, opacity: 1, duration: 0.9, ease: 'expo.out' },
+    at
+  ).to(
+    bloom,
+    { opacity: 0, duration: 1.6, ease: 'power2.in', onComplete: () => bloom.remove() },
+    at + 1.1
+  )
 }
 
 // 達成テキストを1文字ずつ登場させ、holdSeconds のあいだ表示し続けてからフェードアウト（SplitText）。
@@ -174,16 +231,16 @@ const showText = (
   layer: HTMLElement,
   label: string,
   fontSize: string,
-  gold: boolean,
+  highlight: boolean,
   at: number,
   holdSeconds: number
 ): void => {
   const el = makeEl(
     layer,
     `position:absolute;top:34%;left:50%;transform:translate(-50%,-50%);` +
-      `font-size:${fontSize};font-weight:800;white-space:nowrap;letter-spacing:0.04em;` +
-      `color:${gold ? TEXT_GOLD : '#ffffff'};will-change:transform,opacity;` +
-      'text-shadow:0 2px 12px rgba(0,0,0,0.5), 0 0 24px rgba(255,215,0,0.7);'
+      `font-size:${fontSize};font-weight:800;white-space:nowrap;letter-spacing:0.06em;` +
+      `color:${highlight ? TEXT_CYAN : '#ffffff'};will-change:transform,opacity;` +
+      `text-shadow:0 2px 12px rgba(0,20,40,0.6), 0 0 18px rgba(${GLOW_CYAN},0.9), 0 0 36px rgba(${GLOW_BLUE},0.6);`
   )
   el.textContent = label
   const split = new SplitText(el, { type: 'chars' })
@@ -230,8 +287,8 @@ const addSparkles = (layer: HTMLElement): void => {
   for (let i = 0; i < 24; i++) {
     const s = makeEl(
       layer,
-      `position:absolute;top:${random(18, 70)}%;left:${random(12, 88)}%;width:8px;height:8px;` +
-        'border-radius:50%;background:#ffffff;box-shadow:0 0 8px 2px rgba(255,240,180,0.9);opacity:0;'
+      `position:absolute;top:${random(18, 70)}%;left:${random(12, 88)}%;width:7px;height:7px;` +
+        `border-radius:50%;background:#ffffff;box-shadow:0 0 8px 2px rgba(${GLOW_CYAN},0.95);opacity:0;`
     )
     sparkles.push(s)
   }
@@ -271,39 +328,45 @@ export const playMilestone = (
     addGlow(tl, layer, 1.6, 0)
     addShockwave(tl, layer, 0.08)
     pulseTree(tl, tree, 1.06, 0.4)
-    burstConfetti(layer, 40, CONFETTI_COLORS.slice(0, 2))
+    burstGlyphs(layer, 130, BIT_COLORS)
     showText(tl, layer, label, 'clamp(2rem, 6vmin, 4rem)', false, 0.6, 3)
   } else if (stage === 2) {
-    addFlash(tl, layer, 0.4, 0)
+    addFlash(tl, layer, 0.35, 0)
+    addGlitch(tl, layer, 0.02)
     addGlow(tl, layer, 2.4, 0.05)
     addShockwave(tl, layer, 0.1)
     addRays(tl, layer, 16, 0.4)
     pulseTree(tl, tree, 1.08, 0.4)
-    burstConfetti(layer, 80, CONFETTI_COLORS)
+    burstGlyphs(layer, 240, BIT_COLORS)
     showText(tl, layer, label, 'clamp(2.4rem, 7vmin, 4.6rem)', false, 0.6, 3.2)
   } else {
-    addFlash(tl, layer, 0.6, 0)
+    addFlash(tl, layer, 0.5, 0)
+    addGlitch(tl, layer, 0.02)
     addGlow(tl, layer, 2.8, 0.05)
     addShockwave(tl, layer, 0.1)
     addRays(tl, layer, 24, 0.4)
     pulseTree(tl, tree, 1.1, 0.4)
-    burstConfetti(layer, 120, CONFETTI_COLORS)
+    burstGlyphs(layer, 380, BIT_COLORS)
     showText(tl, layer, label, 'clamp(2.8rem, 8vmin, 5.2rem)', true, 0.6, 3.5)
   }
   return tl
 }
 
-// 10,000人達成のフィナーレ（最も豪華）。満開の定着（葉色・金縁発光）は data-bloomed（CenterTree）が担当する。
+// 10,000人達成のフィナーレ（最も豪華）＝「光が画面全体に広がる」。
+// 満開の定着（樹冠の発光最大化）は data-bloomed（CenterTree）が担当する。
 export const playFullBloom = (layer: HTMLElement, tree: HTMLElement): gsap.core.Timeline => {
   ensurePlugins()
   const tl = gsap.timeline()
 
-  addFlash(tl, layer, 0.9, 0)
+  addGlitch(tl, layer, 0)
+  addFlash(tl, layer, 0.85, 0.05)
   addShockwave(tl, layer, 0.12)
   pulseTree(tl, tree, 1.14, 0.3)
+  addScreenBloom(tl, layer, 0.18) // 光が画面全体に広がる主役
   addRays(tl, layer, 32, 0.5)
-  burstConfetti(layer, 90, CONFETTI_COLORS)
-  burstPetals(layer, 150)
+  // 画面を埋めるほどの量を、中央噴水＋全画面ばらまきの二段で出す。
+  burstGlyphs(layer, 360, BIT_COLORS)
+  burstGlyphs(layer, 520, BIT_COLORS, true)
   showText(tl, layer, '10,000人達成！', 'clamp(3.2rem, 10vmin, 7rem)', true, 0.8, 4.5)
   addSparkles(layer)
   return tl

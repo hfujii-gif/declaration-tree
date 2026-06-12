@@ -1,6 +1,7 @@
 'use client'
 
 import { forwardRef, useEffect, useRef } from 'react'
+import { MATRIX_GLYPHS, MATRIX_FONT_STACK } from '@/lib/constants'
 import styles from './CenterTree.module.scss'
 
 type CenterTreeProps = {
@@ -11,16 +12,18 @@ type CenterTreeProps = {
   bloomed?: boolean
 }
 
-// 樹冠に流す文字（マトリックス風＝英数字のみ）。
-const GLYPHS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+// 樹冠に流す文字はエコ語の文字（#49）。共有定数 MATRIX_GLYPHS（ひらがな・漢字）を使う。
 
 // 樹冠 canvas の論理サイズ（CSS px）。SVGの木（360×468）の樹冠位置に重ねる。
 // stage 拡大・満開発光は CSS（.canopy）が担う。
 const CANOPY_W = 500
 const CANOPY_H = 380
-const FONT_SIZE = 11 // 文字サイズ＝列の横間隔（小さくして列を密に）
-const LINE_HEIGHT = 11 // 列内の文字の縦間隔
-const TRAIL = 22 // 1列あたりの軌跡（ヘッド＋尾）の長さ。長くして樹冠を埋める
+// 全角（ひらがな・漢字）向けの寸法（#49）。字幅≈フォントサイズなので、列の横間隔・行の縦間隔は
+// フォントサイズより少し広くして文字どうしが重ならないようにする。
+const FONT_SIZE = 13 // 文字サイズ（全角）
+const COL_STEP = 15 // 列の横間隔（全角字幅＋わずかな余白）
+const LINE_HEIGHT = 15 // 列内の文字の縦間隔（全角字高＋わずかな余白）
+const TRAIL = 18 // 1列あたりの軌跡（ヘッド＋尾）の長さ。字が大きくなったぶん短くして埋まりを調整
 
 // 葉の塊（ふくらみ）。複数の円を重ねて、横に大きく広がるモリモリの緑の樹冠を作る（canvas座標。中心 x=250）。
 // 緑のグラデーションはこのふくらみにのみ描く。
@@ -100,7 +103,7 @@ const CenterTree = forwardRef<HTMLDivElement, CenterTreeProps>(function CenterTr
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    const pick = (): string => GLYPHS[(Math.random() * GLYPHS.length) | 0]
+    const pick = (): string => MATRIX_GLYPHS[(Math.random() * MATRIX_GLYPHS.length) | 0]
 
     // 葉の塊（ふくらみ）の緑グラデーション。中心が濃く端へ透明。固定なので一度だけ生成する。
     // 複数を重ねて描くことで、不透明感のあるモリモリした緑の樹冠になる。
@@ -132,7 +135,7 @@ const CenterTree = forwardRef<HTMLDivElement, CenterTreeProps>(function CenterTr
       canvas.width = Math.round(CANOPY_W * dpr)
       canvas.height = Math.round(CANOPY_H * dpr)
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-      ctx.font = `700 ${FONT_SIZE}px 'Courier New', 'Consolas', monospace`
+      ctx.font = `700 ${FONT_SIZE}px ${MATRIX_FONT_STACK}`
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
     }
@@ -141,7 +144,7 @@ const CenterTree = forwardRef<HTMLDivElement, CenterTreeProps>(function CenterTr
     // 樹冠のバウンディング全体に縦のレイン列を敷き詰める（はみ出しは clipCrown で葉の形に抜く）。
     const rows = Math.max(1, Math.floor((CROWN_MAX_Y - CROWN_MIN_Y) / LINE_HEIGHT))
     const columns: Column[] = []
-    for (let x = CROWN_MIN_X; x <= CROWN_MAX_X; x += FONT_SIZE) {
+    for (let x = CROWN_MIN_X; x <= CROWN_MAX_X; x += COL_STEP) {
       columns.push({
         x,
         topY: CROWN_MIN_Y,

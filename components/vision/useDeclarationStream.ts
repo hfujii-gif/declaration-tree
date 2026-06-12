@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react'
 import type { RefObject } from 'react'
-import { playDeclaration } from '@/lib/animations'
+import { playDeclaration, playMilestone, playFullBloom } from '@/lib/animations'
 import {
   DECLARATION_GAP_MS,
   DECLARATION_MAX_QUEUE,
@@ -9,21 +9,35 @@ import {
   DECLARATION_BACKLOG_HOLD_MS,
   DECLARATION_BACKLOG_ABSORB_MS,
   DECLARATION_BACKLOG_GAP_MS,
+  MILESTONE_FOLLOW_GAP_MS,
 } from '@/lib/constants'
 
-// 宣言吸収演出（#44）のキュー管理フック。
-// 中央スポットライトは同時に1つだけ再生し、新着宣言は直列に1件ずつ消化する
-// （iPad 25台同時送信などのバーストでも破綻させない）。旧 useTransientLeaves の置き換え。
+// /vision の演出ジョブ。宣言の吸収・マイルストーン・満開を1本のキューで直列に流す（#44 / #49 タスクA）。
+type VisionJob =
+  | { type: 'declaration'; text: string }
+  | { type: 'milestone'; stage: number; count: number }
+  | { type: 'bloom' }
+
+// 戻り値：演出ジョブをキューに積む関数群。
+type DeclarationStream = {
+  enqueueDeclaration: (text: string) => void
+  enqueueMilestone: (stage: number, count: number) => void
+  enqueueBloom: () => void
+}
+
+// /vision の演出キュー管理フック（旧 useTransientLeaves の置き換え）。
+// 中央スポットライト（宣言吸収）・マイルストーン・満開を **同時に1つだけ** 直列再生する。
+// これにより「達成を起こした宣言が木に吸い込まれてから、続けてマイルストーン演出が流れる」因果のある見え方になる
+// （#49 タスクA。マイルストーンは page 側で count 到達時にキューへ積む）。
 //
 // layerRef … Celebration レイヤー（演出DOMのホスト）
 // treeRef  … CenterTree（吸収先 [data-canopy] を内包）
-// 戻り値の enqueue(text) を onChildAdded から呼ぶ。
 export function useDeclarationStream(
   layerRef: RefObject<HTMLElement | null>,
   treeRef: RefObject<HTMLElement | null>
-): (text: string) => void {
+): DeclarationStream {
   // 真実源は ref に持つ（再レンダリングを起こさず、コールバックを安定させる）。
-  const queueRef = useRef<string[]>([])
+  const queueRef = useRef<VisionJob[]>([])
   const playingRef = useRef(false)
   const currentTlRef = useRef<gsap.core.Timeline | null>(null)
   // 連続時に次の演出を表示するまでの“間”のタイマー。待機中は drain しない。
@@ -38,32 +52,46 @@ export function useDeclarationStream(
     const layer = layerRef.current
     const tree = treeRef.current
     if (!layer || !tree) return // DOM 未準備（通常は起こらない）。次の enqueue で再試行される。
-    const text = queueRef.current.shift()
-    if (text === undefined) return
+    const job = queueRef.current.shift()
+    if (job === undefined) return
 
     playingRef.current = true
-    // バックログが溜まっているときは“間”と表示を短縮してドレインを早める（それでも極端には速くしない）。
-    const backlog = queueRef.current.length
-    const opts =
-      backlog > DECLARATION_BACKLOG_THRESHOLD
-        ? {
-            leadMs: DECLARATION_BACKLOG_LEAD_MS,
-            holdMs: DECLARATION_BACKLOG_HOLD_MS,
-            absorbMs: DECLARATION_BACKLOG_ABSORB_MS,
-          }
-        : undefined
-    const tl = playDeclaration(text, layer, tree, opts)
+    let tl: gsap.core.Timeline
+    if (job.type === 'declaration') {
+      // バックログが溜まっているときは“間”と表示を短縮してドレインを早める（宣言のみ・極端には速くしない）。
+      const backlog = queueRef.current.length
+      const opts =
+        backlog > DECLARATION_BACKLOG_THRESHOLD
+          ? {
+              leadMs: DECLARATION_BACKLOG_LEAD_MS,
+              holdMs: DECLARATION_BACKLOG_HOLD_MS,
+              absorbMs: DECLARATION_BACKLOG_ABSORB_MS,
+            }
+          : undefined
+      tl = playDeclaration(job.text, layer, tree, opts)
+    } else if (job.type === 'milestone') {
+      tl = playMilestone(job.stage, job.count, layer, tree)
+    } else {
+      tl = playFullBloom(layer, tree)
+    }
     currentTlRef.current = tl
+
     tl.eventCallback('onComplete', () => {
       currentTlRef.current = null
       playingRef.current = false
       if (unmountedRef.current) return
-      // 次が無ければ“間”を置かず待機（新着が来たら即時再生）。あれば連続表示の間隔を空ける。
-      if (queueRef.current.length === 0) return
-      const gapMs =
-        queueRef.current.length > DECLARATION_BACKLOG_THRESHOLD
-          ? DECLARATION_BACKLOG_GAP_MS
-          : DECLARATION_GAP_MS
+      const next = queueRef.current[0]
+      if (next === undefined) return // 次が無ければ待機（新着が来たら即時再生）。
+      // 宣言→宣言は通常の“間”。マイルストーン/満開が絡む境目は短い間で詰めて因果を密に見せる。
+      let gapMs: number
+      if (job.type !== 'declaration' || next.type !== 'declaration') {
+        gapMs = MILESTONE_FOLLOW_GAP_MS
+      } else {
+        gapMs =
+          queueRef.current.length > DECLARATION_BACKLOG_THRESHOLD
+            ? DECLARATION_BACKLOG_GAP_MS
+            : DECLARATION_GAP_MS
+      }
       gapTimerRef.current = setTimeout(() => {
         gapTimerRef.current = null
         drainRef.current()
@@ -76,16 +104,28 @@ export function useDeclarationStream(
     drainRef.current = drain
   }, [drain])
 
-  const enqueue = useCallback((text: string): void => {
+  const enqueueDeclaration = useCallback((text: string): void => {
     if (unmountedRef.current) return
-    // 上限超過は捨てる（無音で打ち切らず可視化する）。
+    // 上限超過は捨てる（無音で打ち切らず可視化する）。マイルストーン/満開はこの上限の対象外（取りこぼさない）。
     if (queueRef.current.length >= DECLARATION_MAX_QUEUE) {
       console.warn(
         `[vision] 宣言演出キューが上限(${DECLARATION_MAX_QUEUE})に達したため1件スキップしました`
       )
       return
     }
-    queueRef.current.push(text)
+    queueRef.current.push({ type: 'declaration', text })
+    drainRef.current()
+  }, [])
+
+  const enqueueMilestone = useCallback((stage: number, count: number): void => {
+    if (unmountedRef.current) return
+    queueRef.current.push({ type: 'milestone', stage, count })
+    drainRef.current()
+  }, [])
+
+  const enqueueBloom = useCallback((): void => {
+    if (unmountedRef.current) return
+    queueRef.current.push({ type: 'bloom' })
     drainRef.current()
   }, [])
 
@@ -107,5 +147,5 @@ export function useDeclarationStream(
     }
   }, [])
 
-  return enqueue
+  return { enqueueDeclaration, enqueueMilestone, enqueueBloom }
 }

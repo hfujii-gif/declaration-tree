@@ -20,6 +20,8 @@ import {
   DECLARATION_START_DELAY_MS,
   DECLARATION_TEXT_HOLD_MS,
   DECLARATION_ABSORB_MS,
+  MATRIX_GLYPHS,
+  MATRIX_FONT_STACK,
 } from '@/lib/constants'
 
 // ---- 見た目の定数（しきい値は lib/constants.ts の MILESTONES を使う。ここは演出パラメータ） ----
@@ -34,8 +36,7 @@ const GLOW_BLUE = '110, 168, 255'
 const ORIGIN_TOP = 42
 
 // ---- 宣言吸収演出（#44）の見た目パラメータ ----
-// マトリックス分解時に1文字ずつ差し替えるグリフ（半角カタカナ＋英数字＝デジタルレインの質感）。
-const MATRIX_GLYPHS = 'ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎ0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+// マトリックス分解時に差し替えるグリフはエコ語の文字（#49）。共有定数 MATRIX_GLYPHS を使う。
 // 木へ吸い込まれるときに文字がシフトする色（樹冠の緑に溶け込む）。
 const ABSORB_COLOR = 'rgba(120, 245, 150, 1)'
 // 中央テキストの登場にかける時間（秒）。
@@ -150,7 +151,7 @@ const burstGlyphs = (
     const piece = makeEl(
       layer,
       `position:absolute;top:${top}%;left:${left}%;` +
-        `font:700 ${size}px 'Courier New', 'Consolas', monospace;color:${color};` +
+        `font:700 ${size}px ${MATRIX_FONT_STACK};color:${color};` +
         `text-shadow:0 0 8px ${color};will-change:transform,opacity;`
     )
     piece.textContent = pickGlyph()

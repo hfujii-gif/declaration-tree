@@ -38,8 +38,11 @@ export default function VisionPage() {
   // 演出DOMのホスト（Celebration レイヤー）と、パルス・満開ポップの対象（CenterTree）。
   const celebrationRef = useRef<HTMLDivElement>(null)
   const treeRef = useRef<HTMLDivElement>(null)
-  // 新着宣言の吸収演出を直列再生するキュー（葉システムの置き換え）。
-  const enqueueDeclaration = useDeclarationStream(celebrationRef, treeRef)
+  // 宣言の吸収・マイルストーン・満開を1本のキューで直列再生する（#49 タスクA）。
+  const { enqueueDeclaration, enqueueMilestone, enqueueBloom } = useDeclarationStream(
+    celebrationRef,
+    treeRef
+  )
   // ?celebrate= プレビューの二度焚き防止。
   const celebratedRef = useRef(false)
 
@@ -95,25 +98,23 @@ export default function VisionPage() {
     }
   }, [enqueueDeclaration])
 
-  // 累計が新しいマイルストーンに到達したとき、その「最上位の1つだけ」を発火する。
-  // firedIndexRef を単調増加で管理するため、初期ロード・減少後の再通過・二度焚きでは発火しない。
-  // 1回の更新で複数のしきい値を跨いでも（再接続のバッファ一括反映・一括投入時）最大の1つだけを再生する。
+  // 累計が新しいマイルストーンに到達したとき、その「最上位の1つだけ」を演出キューへ積む（#49 タスクA）。
+  // 即発火せずキューに積むことで、到達を起こした宣言の吸収演出が終わってからマイルストーンが流れる。
+  // firedIndexRef を単調増加で管理するため、初期ロード・減少後の再通過・二度焚きでは積まない。
+  // 1回の更新で複数のしきい値を跨いでも（再接続のバッファ一括反映・一括投入時）最大の1つだけを積む。
   useEffect(() => {
     if (!initialLoadedRef.current) return
     const targetIndex = MILESTONES.filter((milestone) => count >= milestone).length - 1
     if (targetIndex <= firedIndexRef.current) return
-    const layer = celebrationRef.current
-    const tree = treeRef.current
-    if (!layer || !tree) return
     firedIndexRef.current = targetIndex
     if (targetIndex === MILESTONES.length - 1) {
       // 10,000人＝満開フィナーレ。
-      playFullBloom(layer, tree)
+      enqueueBloom()
     } else {
       // 2,500/5,000/7,500＝段階が上がるほど派手に。
-      playMilestone(targetIndex + 1, MILESTONES[targetIndex], layer, tree)
+      enqueueMilestone(targetIndex + 1, MILESTONES[targetIndex])
     }
-  }, [count])
+  }, [count, enqueueMilestone, enqueueBloom])
 
   // ?celebrate= プレビュー：指定されたマイルストーンの達成演出を1回だけ再生する（リハーサル用）。
   useEffect(() => {

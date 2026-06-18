@@ -11,6 +11,28 @@ export const MILESTONES = [2500, 5000, 7500, 10000] as const
 // 管理画面で参照する環境変数名（process.env[ADMIN_PASSWORD_ENV] で照合）
 export const ADMIN_PASSWORD_ENV = 'ADMIN_PASSWORD'
 
+// /vision のマトリックス演出で流す文字（#49 タスクB）。
+// 環境・自然・エコにまつわる言葉を素材に、その文字（ひらがな・漢字）を集合として使う。
+// 樹冠レイン・宣言テキストの分解・マイルストーンのグリフ紙吹雪で共通利用する。
+// ※ 語の最終選定はクライアント確認のうえ調整可。ここを変えれば全演出の文字が変わる。
+const ECO_WORDS = [
+  // 環境・サステナビリティの語彙を中心に
+  '環境', '地球', '自然', '未来', '命', '資源', '生態系', '共生',
+  '循環', '再生', '省エネ', '節電', '節水', '節約', '脱炭素', '温暖化',
+  '削減', '排出', '保全', '緑化', '植林', '森林', '再エネ', 'エネルギー',
+  'リサイクル', 'リユース', 'リデュース', 'エコ', 'クリーン', 'サステナブル',
+  '太陽光', '風力', '水素', '電気', 'ごみ', '分別', 'もったいない',
+  '緑', '森', '水', '風', '光', '芽', '種', '葉',
+  'めぐみ', 'いのち', 'つなぐ', 'まもる', 'そだてる', 'ささえる',
+]
+// 語から重複を除いたユニークな文字集合（モジュール読込時に一度だけ算出）。
+export const MATRIX_GLYPHS = Array.from(new Set(ECO_WORDS.join(''))).join('')
+
+// /vision のマトリックス文字に使うフォントスタック（全角の日本語等幅を含める）。
+// 会場実機のブラウザで漢字・ひらがなが描画されるよう、日本語フォントをフォールバックに含める。
+export const MATRIX_FONT_STACK =
+  "'Courier New', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Noto Sans JP', 'Meiryo', monospace"
+
 // /vision 宣言吸収演出（#44）。新着宣言ごとに「中央に大きく表示→マトリックス分解→木へ吸収→木が発光」を再生する。
 
 // 新着を検出してから中央テキストを出すまでの“間”（ミリ秒）。
@@ -40,3 +62,7 @@ export const DECLARATION_BACKLOG_HOLD_MS = 800
 export const DECLARATION_BACKLOG_ABSORB_MS = 1800
 // バックログ短縮モードでの連続表示の“間”（ミリ秒）。通常の DECLARATION_GAP_MS より短くする。
 export const DECLARATION_BACKLOG_GAP_MS = 500
+
+// マイルストーン演出（#49 タスクA）を、それを起こした宣言の吸収完了の直後に詰めて流すときの短い“間”（ミリ秒）。
+// 宣言→マイルストーン、マイルストーン→宣言の境目で使い、因果を密に見せる。
+export const MILESTONE_FOLLOW_GAP_MS = 250

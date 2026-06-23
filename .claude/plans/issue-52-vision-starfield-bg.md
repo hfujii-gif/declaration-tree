@@ -11,110 +11,70 @@
 ## ステータス
 
 - [x] プラン作成中
-- [ ] レビュー待ち
-- [ ] 承認済み → 実装開始可能
-- [ ] 実装完了
-- [ ] PR作成済み
+- [x] レビュー待ち
+- [x] 承認済み → 実装開始可能
+- [x] 実装完了
+- [x] PR作成済み（#54）
 
 ---
 
-## 実装対象ファイル
+## 方針転換の記録（重要）
 
-### 新規作成するファイル
-```
-なし
-```
+当初は **CSSのみ**（radial-gradient の星空＋瞬き、repeating-linear-gradient の縦コラム×流れバンドで
+デジタルレイン）で実装した。しかし参考画像のトーン再現と質感のため、レビュー前に
+**シームレス化した星景動画の全画面ループ再生**へ方針変更した。あわせて中央の木も
+発光SVG → 画像（`tree.png`）へ差し替えた。最終実装は以下の「最終実装」セクションを正とする。
 
-### 編集するファイル
-```
-components/vision/Background.tsx          # 星空レイヤー・レインレイヤーの追加
-components/vision/Background.module.scss  # 星空キラキラ＋デジタルレインのCSS
-app/globals.scss                          # 星・レイン用のカラー変数を追加（任意）
-```
+> CSS方式の詳細（`.stars`/`.rain` の keyframes 設計など）は git 履歴（初回コミット）参照。
 
 ---
 
-## 依存関係の確認
+## 最終実装
 
-| 依存するファイル/Issue | 状態 |
-|---|---|
-| 既存の Background.tsx / Background.module.scss | ✅ 完了 |
-| CenterTree.tsx（樹冠レインの世界観参照） | ✅ 完了 |
+### 背景（動画ループ）
+- `components/vision/Background.tsx`：`<video loop muted autoPlay playsInline>` で
+  `public/videos/starfield-bg-seamless.mp4` をループ再生。素材自体がシームレスなため再生制御のJSは不要
+  （タイマー・rAF・リスナーを一切追加しない＝長時間8h+稼働のメモリリーク方針を維持）。
+- `components/vision/Background.module.scss`：`object-fit: cover` で全画面表示。
+  読み込み前の素抜け防止に暗い下地色 `--color-sky-top` を敷く。
+- 素材生成：`scripts/make-seamless.sh`（ffmpeg xfade で末尾→先頭をクロスフェードし継ぎ目を消す）。
+  生素材 `public/videos/starfield-bg.mp4` は `.gitignore` で除外（差し替え時にスクリプトで再生成）。
 
-新規の依存なし。
+### 中央の木（画像差し替え）
+- `components/vision/CenterTree.tsx`：発光SVGの幹・枝 → `public/images/tree.png`（素の `<img>`）。
+  樹冠のデジタルレイン（canvas）は従来どおり維持（rAF を保持しアンマウント時に破棄）。
+- `components/vision/CenterTree.module.scss`：木画像の表示スタイル。
 
----
-
-## 実装方針（CSSのみで完結）
-
-Issueの第一候補どおり **CSSのみ** で実装し、JSタイマー・rAFを使わない現行方針
-（`Background.tsx` 冒頭コメント）を維持する。これによりメモリリーク対策を自動的に担保する
-（解除すべきリスナー・破棄すべきrAFが存在しない）。
-
-追加するのは2レイヤー：
-
-1. **星空キラキラ（`.stars`）**
-   - 複数の `radial-gradient` で小さな星の点を散りばめる。
-   - 1要素＋`::before`/`::after` の3層に分け、それぞれ星の位置・瞬きの速さ・ディレイを変えることで
-     一斉点滅ではなく **バラバラに瞬く** 自然な星空にする。
-   - `@keyframes` で opacity を明滅させて瞬きを表現。
-   - 上部（夜空）を中心に出し、`mask-image` で下半分（木・グリッド・カウンター付近）へ向けて
-     フェードさせ、視認性を損なわない。
-
-2. **マトリックス的デジタルレイン（`.rain`）**
-   - 縦方向の細い発光ストリーク（`repeating-linear-gradient` の縦ダッシュ）を作り、
-     `background-position` をゆっくり下方向へ流して「降るコード」を表現する。
-   - 樹冠レイン（`CenterTree`）と世界観を合わせ、シアン〜薄緑の寒色・**低輝度／低密度**にする。
-   - こちらも `mask-image` で中央〜下部を弱め、木・宣言テキスト・カウンターに被りすぎないようにする。
-
-レイヤー順（奥→手前）：背景グラデ → アンビエント → **星空** → **デジタルレイン** → 床グリッド →
-スキャンライン → ホログラム揺らぎ。星・レインは木やUIより奥に置く。
-
-> 参考画像（クライアント提供）は本作業環境では参照できないため、トーン（寒色・低密度・穏やかな瞬き）に
-> 寄せた汎用的な調整とし、最終的な密度・色温度・瞬き速度はPRレビュー時に画像基準で微調整できるよう
-> 変数化しておく。
+### 定数・変数
+- `app/globals.scss`：`--color-sky-top`（背景下地）と `--color-leaf-glow`（樹冠canvasのグロー）のみ。
+  旧サイバー調CSSの未参照変数（`--color-cyber-*` / `--color-grid` / `--color-branch` /
+  `--color-trunk-glow` / `--color-particle` / `--color-star` / `--color-rain`）は削除。
 
 ---
 
-## 実装ステップ
-
-1. `app/globals.scss` に星・レイン用カラー変数を追加（`--color-star` 等。既存の寒色トークンを流用しても可）。
-2. `Background.module.scss` に `.stars`（＋`::before`/`::after`）と `.rain` のスタイル・`@keyframes` を追加。
-3. `Background.tsx` に `<div className={styles.stars} />` と `<div className={styles.rain} />` を
-   適切なレイヤー順で追加（コメントは日本語）。
-4. `npm run build` / `npx tsc --noEmit` / `npm run lint` を実行して通ることを確認。
-5. `npm run dev` で /vision を開き、星空＋レインの見え方・木とUIの視認性を目視確認。
-
----
-
-## 考慮が必要な点
-
-### メモリリーク対策
-- CSSのみで完結するため、JSのリスナー・rAFを一切追加しない（現行方針を維持）。
-- `prefers-reduced-motion` 時は瞬き・流れのアニメーションを止める（静止）対応を入れる。
-
-### 視認性
-- 星・レインは木／宣言テキスト／カウンターより奥のレイヤーに置く。
-- `mask-image` と低opacityで中央〜下部の輝度・密度を抑え、主役（木）を邪魔しない。
-
-### 型・エラーハンドリング
-- 純粋な表示コンポーネントの追記のみ。新規の型・例外処理は不要。
+## メモリリーク対策（長時間8h+稼働）
+- 背景は素材がシームレスループのため、再生制御のJS（タイマー・rAF・リスナー）を追加していない。
+- 樹冠レイン（canvas）は既存の rAF 破棄・visibilitychange 停止の実装を維持。
 
 ---
 
 ## 完了条件（Issueより転記）
 
-- [ ] 背景が星空（夜空）のようにキラキラ瞬く表現になっている
-- [ ] キラキラがマトリックス／デジタルレイン的な世界観で表現されている
-- [ ] 木・宣言テキスト・カウンターの視認性を損なっていない
-- [ ] 長時間稼働のメモリリーク対策を担保（CSS完結）
-- [ ] 参考画像のトーンに沿っている（画像未参照のため寒色・低密度で近似、PRで微調整）
-- [ ] npm run build / npx tsc --noEmit / npm run lint が通る
+- [x] 背景が星空（夜空）のようにキラキラ瞬く表現になっている（星景動画）
+- [x] キラキラがマトリックス／デジタルレイン的世界観で表現されている（樹冠レイン＋星景動画）
+- [x] 木・宣言テキスト・カウンターの視認性を損なっていない
+- [x] 長時間稼働のメモリリーク対策を担保（動画はJSなし／canvasは破棄実装維持）
+- [x] 参考画像のトーンに沿っている（動画素材で再現）
+- [x] npm run build / npx tsc --noEmit / npm run lint が通る
 
 ---
 
-## 承認コメント欄
+## レビュー対応（PR #54）
 
-**承認者**：
-**承認日**：
-**コメント**：
+必須修正なし（LGTM）。任意指摘のうち以下を対応：
+- 未使用CSS変数の削除（globals.scss）
+- `.gitignore` のコメント不整合解消＋ `scripts/make-seamless.sh` をコミット
+- `Background.tsx` / `Background.module.scss` の末尾改行追加
+- 本プランファイルを動画方式へ更新（本対応）
+
+見送り：木画像の `object-fit: cover` 見切れ確認（実機目視は別途。透過PNGのため大きな実害は想定せず）。

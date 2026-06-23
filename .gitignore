@@ -40,5 +40,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# 背景動画の生素材（scriptsで再生成可能・git肥大化回避 #52）
+# 背景動画の生素材（#52）。git肥大化回避のため無視する。
+# seamless 版は scripts/make-seamless.sh で生素材から再生成できる（差し替え時のみ使用）。
 public/videos/starfield-bg.mp4

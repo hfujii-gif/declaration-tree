@@ -34,6 +34,150 @@
   }
 }
 
+// 星空（夜空）のキラキラ瞬き（#52）。
+// 小さな星を radial-gradient のタイルで散りばめ、本体＋::before/::after の3層で
+// 位置・瞬き速度・タイミングをずらし、一斉点滅ではなくバラバラに瞬く自然な星空にする。
+// mask で上部（夜空）を中心に出し、下半分（木・グリッド・カウンター付近）へフェードさせて視認性を確保する。
+.stars {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-repeat: repeat;
+  // 第1層：中粒の星をまばらに。
+  background-image:
+    radial-gradient(1.5px 1.5px at 20px 30px, var(--color-star), transparent 100%),
+    radial-gradient(1px 1px at 130px 90px, var(--color-star), transparent 100%),
+    radial-gradient(1.5px 1.5px at 210px 150px, var(--color-star), transparent 100%),
+    radial-gradient(1px 1px at 80px 190px, var(--color-star), transparent 100%),
+    radial-gradient(1.5px 1.5px at 245px 50px, var(--color-star), transparent 100%);
+  background-size: 270px 230px;
+  opacity: 0.9;
+  // 上ほど濃く、下に向かって消す（主役の木・UIに被せない）。
+  mask-image: linear-gradient(to bottom, #000 0%, #000 42%, transparent 80%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 42%, transparent 80%);
+  animation: twinkle-a 4.2s ease-in-out infinite;
+}
+
+.stars::before,
+.stars::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-repeat: repeat;
+  mask-image: linear-gradient(to bottom, #000 0%, #000 42%, transparent 80%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 42%, transparent 80%);
+}
+
+// 第2層：小粒の星を別配置で。瞬きの速さ・タイミングを変える。
+.stars::before {
+  background-image:
+    radial-gradient(1px 1px at 60px 40px, var(--color-star), transparent 100%),
+    radial-gradient(1px 1px at 170px 20px, var(--color-star), transparent 100%),
+    radial-gradient(1px 1px at 30px 120px, var(--color-star), transparent 100%),
+    radial-gradient(1px 1px at 150px 160px, var(--color-star), transparent 100%);
+  background-size: 200px 200px;
+  opacity: 0.7;
+  animation: twinkle-b 6.4s ease-in-out infinite;
+}
+
+// 第3層：大粒の明るい星をまばらに。ゆっくり縦へ流して夜空の奥行きを出す。
+.stars::after {
+  background-image:
+    radial-gradient(2px 2px at 110px 70px, var(--color-star), transparent 100%),
+    radial-gradient(2px 2px at 300px 200px, var(--color-star), transparent 100%);
+  background-size: 360px 320px;
+  opacity: 0.85;
+  animation: twinkle-c 9s ease-in-out infinite;
+}
+
+@keyframes twinkle-a {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 0.95;
+  }
+}
+
+@keyframes twinkle-b {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  40% {
+    opacity: 0.8;
+  }
+}
+
+// 瞬き＋ごく低速の縦ドリフトで「生きている夜空」にする。
+// （background-size が 360px 320px のため、-320px の移動で継ぎ目なくループする）
+@keyframes twinkle-c {
+  0% {
+    opacity: 0.55;
+    background-position: 0 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.55;
+    background-position: 0 -320px;
+  }
+}
+
+// マトリックス的に降るデジタルレイン（#52）。樹冠レイン（CenterTree）と世界観を合わせた寒色・低密度。
+// 縦の細いコラム（mask の縦ストライプ）に、下へ流れる発光バンド（background）を掛け合わせることで、
+// 各列を“降るコード”として見せる。木・宣言テキスト・カウンターより奥のレイヤーに置き、輝度・密度は抑える。
+.rain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  // 下へ流れる発光バンド（ヘッドが少し明るい）。縦に繰り返してタイル状に降らせる。
+  background-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 72px,
+    var(--color-rain) 82px,
+    rgba(180, 255, 225, 0.9) 90px,
+    var(--color-rain) 98px,
+    transparent 108px,
+    transparent 168px
+  );
+  background-size: 100% 168px;
+  background-repeat: repeat;
+  // 縦の細いコラム（静止）と、中央〜下部を弱める全体フェードの積（intersect）で形を抜く。
+  mask-image:
+    repeating-linear-gradient(to right, #000 0, #000 1px, transparent 1px, transparent 18px),
+    linear-gradient(to bottom, transparent 0%, #000 24%, #000 52%, transparent 88%);
+  mask-composite: intersect;
+  -webkit-mask-image:
+    repeating-linear-gradient(to right, #000 0, #000 1px, transparent 1px, transparent 18px),
+    linear-gradient(to bottom, transparent 0%, #000 24%, #000 52%, transparent 88%);
+  -webkit-mask-composite: source-in;
+  animation: rain-fall 7s linear infinite;
+}
+
+@keyframes rain-fall {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 0 168px;
+  }
+}
+
+// モーション抑制設定では瞬き・流れを止め、静止した星空＋レインにする（長時間稼働の負荷も下げる）。
+@media (prefers-reduced-motion: reduce) {
+  .stars,
+  .stars::before,
+  .stars::after,
+  .rain {
+    animation: none;
+  }
+}
+
 // 遠近感のある床グリッド。下半分に敷き、奥（上）ほど密に見えるよう傾ける。
 .grid {
   position: absolute;

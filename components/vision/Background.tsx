@@ -8,6 +8,10 @@ export default function Background() {
     <div className={styles.background} aria-hidden="true">
       {/* 中央付近からにじむアンビエント発光 */}
       <div className={styles.ambient} />
+      {/* 星空（夜空）のキラキラ瞬き（#52）。本体＋::before/::afterの3層がバラバラに瞬く */}
+      <div className={styles.stars} />
+      {/* マトリックス的に降るデジタルレイン（#52）。樹冠レインと世界観を合わせた寒色・低密度 */}
+      <div className={styles.rain} />
       {/* 遠近感のある床グリッド（奥から手前へ広がる） */}
       <div className={styles.grid} />
       {/* 全面に薄くかかるスキャンライン */}

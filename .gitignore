@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# 背景動画の生素材（scriptsで再生成可能・git肥大化回避 #52）
+public/videos/starfield-bg.mp4

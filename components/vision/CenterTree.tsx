@@ -324,41 +324,12 @@ const CenterTree = forwardRef<HTMLDivElement, CenterTreeProps>(function CenterTr
       aria-hidden="true"
     >
       {/* 内側ラッパー：マイルストーンのパルス（pulseTree）はこの要素を拡大→戻すため、
-          幹・枝（SVG）と樹冠レイン（canvas）が一体でパルスする。 */}
+          幹・枝（画像）と樹冠レイン（canvas）が一体でパルスする。 */}
       <div className={styles.treeInner} data-tree-inner="true">
-        <svg className={styles.tree} viewBox="0 0 200 260" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            {/* 発光する幹の縦グラデーション（上が明るく、根元がシアン寄り） */}
-            <linearGradient id="cyberTrunk" x1="0" y1="0" x2="0" y2="1">
-              <stop className={styles.trunkStopTop} offset="0%" />
-              <stop className={styles.trunkStopBottom} offset="100%" />
-            </linearGradient>
-          </defs>
-
-          {/* 幹（太めの発光する塊）。根元が広がるテーパー形。 */}
-          <path
-            className={styles.trunk}
-            d="M84 254 C82 226 80 206 90 178 C94 166 96 154 98 140 L102 140 C104 154 106 166 110 178 C120 206 118 226 116 254 Z"
-          />
-
-          {/* 枝（発光ライン）。幹から何回も枝分かれして上・外へ広がる。 */}
-          <g className={styles.branches}>
-            {/* 主枝：中央の背骨と左右の大枝 */}
-            <path className={styles.branchMain} d="M100 150 C100 122 100 96 100 58" />
-            <path className={styles.branchMain} d="M99 160 C86 144 74 128 62 104" />
-            <path className={styles.branchMain} d="M101 160 C114 144 126 128 138 104" />
-            {/* 二次枝 */}
-            <path className={styles.branchSub} d="M98 172 C82 162 68 156 50 142" />
-            <path className={styles.branchSub} d="M102 172 C118 162 132 156 150 142" />
-            <path className={styles.branchSub} d="M100 134 C94 118 88 104 80 90" />
-            <path className={styles.branchSub} d="M100 134 C106 118 112 104 120 90" />
-            {/* 小枝（樹冠の端へ伸ばす） */}
-            <path className={styles.branchTwig} d="M82 122 C76 112 70 106 60 98" />
-            <path className={styles.branchTwig} d="M118 122 C124 112 130 106 140 98" />
-            <path className={styles.branchTwig} d="M90 100 C86 90 84 82 84 72" />
-            <path className={styles.branchTwig} d="M110 100 C114 90 116 82 116 72" />
-          </g>
-        </svg>
+        {/* 幹・枝＝裸の木の画像（#52）。旧・発光SVGから差し替え。
+            装飾用の静的画像で最適化不要・object-fit で表示制御するため素の <img> を使う。 */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img className={styles.tree} src="/images/tree.png" alt="" />
 
         {/* 樹冠＝マトリックス・デジタルレイン（#44 のパーティクル吸収先）。
             canvas で実際に文字が切り替わる本物のレインを描く。stage で拡大・満開で発光最大化（CSS）。

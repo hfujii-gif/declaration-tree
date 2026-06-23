@@ -1,113 +1,20 @@
-// 背景レイヤー全体（#43 サイバー化）。明るい青のデジタル基調。木の後ろを中心に明るくにじませる。
+// 背景レイヤー全体（#52 動画ループ化）。
+// 星景の映像を全画面でループ再生する。映像読み込み前の素抜けを防ぐため、暗い背景色を敷く。
 .background {
   position: absolute;
   inset: 0;
   z-index: 0;
   overflow: hidden;
-  background:
-    radial-gradient(120% 95% at 50% 58%, var(--color-cyber-bg-2) 0%, var(--color-cyber-bg) 68%),
-    var(--color-cyber-bg);
+  background-color: var(--color-sky-top);
 }
 
-// 中央付近からにじむアンビエント発光。ゆっくり呼吸させる。
-.ambient {
-  position: absolute;
-  left: 50%;
-  top: 42%;
-  width: 90vw;
-  height: 90vh;
-  transform: translate(-50%, -50%);
-  background: radial-gradient(circle, var(--color-cyber-bg-glow) 0%, rgba(14, 42, 77, 0) 60%);
-  opacity: 0.7;
-  animation: ambient-breathe 9s ease-in-out infinite;
-}
-
-@keyframes ambient-breathe {
-  0%,
-  100% {
-    opacity: 0.45;
-    transform: translate(-50%, -50%) scale(1);
-  }
-  50% {
-    opacity: 0.8;
-    transform: translate(-50%, -50%) scale(1.06);
-  }
-}
-
-// 遠近感のある床グリッド。下半分に敷き、奥（上）ほど密に見えるよう傾ける。
-.grid {
-  position: absolute;
-  left: -50%;
-  right: -50%;
-  bottom: 0;
-  height: 60%;
-  background-image:
-    linear-gradient(to right, var(--color-grid) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--color-grid) 1px, transparent 1px);
-  background-size: 64px 64px;
-  // 奥に倒して床のように見せる。
-  transform: perspective(420px) rotateX(62deg);
-  transform-origin: bottom center;
-  // 奥（上端）に向かってフェードさせ、地平線をぼかす。
-  mask-image: linear-gradient(to top, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0) 78%);
-  -webkit-mask-image: linear-gradient(to top, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0) 78%);
-  // グリッドを手前へ流して奥行きを出す。
-  animation: grid-flow 8s linear infinite;
-}
-
-@keyframes grid-flow {
-  from {
-    background-position: 0 0;
-  }
-  to {
-    background-position: 0 64px;
-  }
-}
-
-// 全面に薄くかかるスキャンライン（横縞）。
-.scanlines {
+// 背景動画。画面全体を切れ目なく覆うよう object-fit: cover で中央トリミング表示する。
+.video {
   position: absolute;
   inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  // 木・宣言テキスト・カウンターより奥に置く（pointer は拾わない）。
   pointer-events: none;
-  background: repeating-linear-gradient(
-    to bottom,
-    rgba(56, 225, 255, 0.05) 0px,
-    rgba(56, 225, 255, 0.05) 1px,
-    transparent 1px,
-    transparent 4px
-  );
-  opacity: 0.6;
-  animation: scan-drift 12s linear infinite;
-}
-
-@keyframes scan-drift {
-  from {
-    background-position: 0 0;
-  }
-  to {
-    background-position: 0 8px;
-  }
-}
-
-// ホログラムの揺らぎ。全面の発光をごくゆっくり明滅させる。
-.flicker {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  // 明るい背景に合わせ、四隅をうっすら青く締める程度の軽いビネットにする。
-  background: radial-gradient(140% 120% at 50% 55%, transparent 62%, rgba(12, 78, 130, 0.28) 100%);
-  animation: holo-flicker 6s ease-in-out infinite;
-}
-
-@keyframes holo-flicker {
-  0%,
-  100% {
-    opacity: 0.85;
-  }
-  45% {
-    opacity: 1;
-  }
-  55% {
-    opacity: 0.78;
-  }
 }

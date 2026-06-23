@@ -11,21 +11,10 @@
   --color-error: #EF4444;
   --color-gray: #9CA3AF;
 
-  /* /vision サイバー化（#43/#44）。明るい青背景＋緑のモリモリした樹冠（デジタルレイン）の配色。
-     旧（空・大地・雲・緑の葉）の変数は #44 の葉撤去にあわせて削除済み。 */
-  --color-cyber-bg: #1486C4;        /* 背景基調（明るい青） */
-  --color-cyber-bg-2: #49C6E6;      /* 背景グラデ中間（明るいシアン） */
-  --color-cyber-bg-glow: #CFF4FF;   /* 中央のアンビエント発光（明るい水色） */
-  --color-cyber-line: #DFF6FF;      /* 旧・幹枝の発光ライン（白〜薄水色）。他UIとの互換のため残す */
-  --color-cyber-trunk-top: #F4CE82; /* 発光する幹の上部（明るい金色） */
-  --color-cyber-trunk-bottom: #6E3F18; /* 発光する幹の根元（濃い茶色） */
-  --color-cyber-glow: #38E1FF;      /* グロー色（シアン） */
-  --color-cyber-glow-2: #6EA8FF;    /* 補助グロー（青寄り） */
-  --color-particle: #BFEBFF;        /* キャノピーの光の粒子 */
-  --color-leaf-glow: #3BE06A;       /* 樹冠（緑デジタルレイン）のグロー色 */
-  --color-branch: #E0A64B;          /* 幹から伸びる枝の発光ライン（金茶） */
-  --color-trunk-glow: #FFB24D;      /* 幹・枝の暖色グロー（金茶） */
-  --color-grid: rgba(255, 255, 255, 0.14); /* 背景グリッド線（明るい背景用に白寄せ） */
+  /* /vision（#52 背景動画化）。星景の映像を全画面ループ再生し、中央の木は画像＋樹冠のデジタルレイン（canvas）。
+     旧サイバー調のCSS描画（背景グラデ・床グリッド・発光SVGの幹枝）は廃止し、未参照になった変数は削除済み。 */
+  --color-leaf-glow: #3BE06A;   /* 樹冠（緑デジタルレイン canvas）のグロー色 */
+  --color-sky-top: #04060e;     /* 背景動画ロード前の素抜け防止に敷く下地（最も暗い紺〜黒） */
 
   /* /admin 管理画面（#12）。白基調・緑(--color-accent)を差し色として使う。 */
   --color-admin-bg: #F3F4F6;

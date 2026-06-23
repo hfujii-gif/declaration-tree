@@ -19,71 +19,18 @@
   transform-origin: bottom center;
 }
 
+// 幹・枝＝裸の木の画像（#52）。透過PNG（669×373）を object-fit: cover で左右の透明余白を切り、
+// 木を中央に実寸表示する。縦は box にちょうど収まり（クロップなし）、横の透明部分だけが切られる。
+// サイズ・位置は緑の樹冠（.canopy）が枝に重なるよう旧SVG（360×468）に近い寸法に合わせている。
 .tree {
-  width: 360px;
-  height: 468px;
   display: block;
-  overflow: visible;
+  width: 360px;
+  height: 460px;
+  object-fit: cover;
+  object-position: center;
 }
 
-// 発光する幹（太めの塊）。縦グラデーション（上が金色・根元が茶）で塗り、暖色のグローをまとわせる。
-.trunk {
-  fill: url(#cyberTrunk);
-  filter:
-    drop-shadow(0 0 4px var(--color-trunk-glow))
-    drop-shadow(0 0 9px rgba(180, 110, 40, 0.7));
-}
-// 幹グラデーションの色（上が明るく、根元がシアン寄り）。
-.trunkStopTop {
-  stop-color: var(--color-cyber-trunk-top);
-}
-.trunkStopBottom {
-  stop-color: var(--color-cyber-trunk-bottom);
-}
-
-// 枝は金茶の発光ライン。太→細でテーパーさせ、暖色のグローをまとわせる。
-.branchMain,
-.branchSub,
-.branchTwig {
-  fill: none;
-  stroke: var(--color-branch);
-  stroke-linecap: round;
-  filter:
-    drop-shadow(0 0 3px var(--color-trunk-glow))
-    drop-shadow(0 0 6px rgba(180, 110, 40, 0.6));
-}
-.branchMain {
-  stroke-width: 3.4;
-}
-.branchSub {
-  stroke-width: 2.2;
-  opacity: 0.92;
-}
-.branchTwig {
-  stroke-width: 1.4;
-  opacity: 0.8;
-}
-
-// 幹・枝のグローをごくゆっくり脈動させ、ホログラム感を出す。
-.trunk {
-  animation: line-pulse 5s ease-in-out infinite;
-}
-.branches {
-  animation: line-pulse 5s ease-in-out infinite;
-  animation-delay: -2.5s;
-}
-
-@keyframes line-pulse {
-  0%,
-  100% {
-    opacity: 0.9;
-  }
-  50% {
-    opacity: 1;
-  }
-}
-
-// 樹冠＝マトリックス・デジタルレインを描く canvas。SVGの木（360×468）の樹冠位置に重ねる。
+// 樹冠＝マトリックス・デジタルレインを描く canvas。木画像（360×460）の樹冠位置に重ねる。
 // アニメーション本体は JS(rAF) 側。CSS は配置と stage 拡大・満開発光の見た目だけを担う。
 // stage が上がるほど下端基準で拡大する（下・外へ広がる）。
 .canopy {

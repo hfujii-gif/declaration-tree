@@ -1,0 +1,17 @@
+// 流れ星レイヤー（#55）。背景映像（z-index:0）の前・中央の木（z-index:2）の後ろに置く。
+// 全画面を覆うが操作は透過する（pointer-events: none）。
+.layer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+// 流れ星を描く canvas。レイヤー全体を覆う。論理サイズは JS 側で DPR を反映して設定する。
+.canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}

@@ -1,0 +1,45 @@
+// ロケット（#55）。背景映像(0)の前・木(2)の後ろ（z-index:1）。
+// 左下から右上へ斜めに飛んで横切る。canvas は機首が真上なので、rotate で進行方向へ傾ける。
+.rocket {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.rocket[data-visible='true'] {
+  animation: rocketTraverse 8s linear; // 所要時間は TRAVERSE_MS と一致させる
+}
+
+.canvas {
+  display: block;
+  width: 150px;
+  height: 230px;
+}
+
+// 左下の画面外 → 右上の画面外へ。機首が進行方向を向くよう rotate(34deg) を全フレームに付ける
+//（炎は機体の下＝進行方向の逆＝左下へ尾を引く）。
+@keyframes rocketTraverse {
+  0% {
+    transform: translate(-22vw, 82vh) rotate(34deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  88% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(100vw, -26vh) rotate(34deg);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rocket {
+    animation: none;
+  }
+}

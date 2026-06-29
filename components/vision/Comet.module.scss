@@ -1,0 +1,44 @@
+// 彗星（#55）。背景映像(0)の前・木(2)の後ろ（z-index:1）。
+// 右上から左下へ、長い尾を引いて画面を横切る。表示中だけ横断アニメを再生する。
+.comet {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0; // 可視・横断は data-visible 時のアニメで制御する
+}
+
+.comet[data-visible='true'] {
+  animation: cometTraverse 9s linear; // 所要時間は TRAVERSE_MS と一致させる
+}
+
+.canvas {
+  display: block;
+  width: 300px;
+  height: 200px;
+}
+
+// 右上の画面外 → 左下の画面外へ。出入りはフェードで滑らかに。
+@keyframes cometTraverse {
+  0% {
+    transform: translate(98vw, -14vh);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  88% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-28vw, 74vh);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .comet {
+    animation: none;
+  }
+}

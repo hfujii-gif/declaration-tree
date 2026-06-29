@@ -5,9 +5,16 @@ import { db, ref, onValue, onChildAdded } from '@/lib/firebase'
 import { MILESTONES } from '@/lib/constants'
 import type { Declaration } from '@/types'
 import Background from '@/components/vision/Background'
+import ShootingStars from '@/components/vision/ShootingStars'
+import Saturn from '@/components/vision/Saturn'
+import Ufo from '@/components/vision/Ufo'
+import Comet from '@/components/vision/Comet'
+import Rocket from '@/components/vision/Rocket'
+import Whale from '@/components/vision/Whale'
 import CenterTree from '@/components/vision/CenterTree'
 import Celebration from '@/components/vision/Celebration'
 import { useDeclarationStream } from '@/components/vision/useDeclarationStream'
+import { useDecorationSettings } from '@/components/vision/useDecorationSettings'
 import { playMilestone, playFullBloom, clearCelebrations } from '@/lib/animations'
 import styles from './page.module.scss'
 
@@ -45,6 +52,8 @@ export default function VisionPage() {
   )
   // ?celebrate= プレビューの二度焚き防止。
   const celebratedRef = useRef(false)
+  // 装飾演出（#55）の ON/OFF（管理画面 settings/decorations）。未設定は全 ON。
+  const decorations = useDecorationSettings()
 
   useEffect(() => {
     const declarationsRef = dbRef.current
@@ -155,6 +164,14 @@ export default function VisionPage() {
   return (
     <div className={styles.container}>
       <Background />
+      {/* 装飾演出（#55）は管理画面（settings/decorations）で個別 ON/OFF できる。未設定は ON。
+          背景映像の前・木の後ろのレイヤー（z-index:1）。 */}
+      {decorations.shootingStars && <ShootingStars />}
+      {decorations.saturn && <Saturn />}
+      {decorations.ufo && <Ufo />}
+      {decorations.comet && <Comet />}
+      {decorations.rocket && <Rocket />}
+      {decorations.whale && <Whale />}
       <CenterTree ref={treeRef} stage={stage} bloomed={bloomed} />
       <div className={styles.counter}>{count.toLocaleString()}人が宣言しました</div>
       <Celebration ref={celebrationRef} />

@@ -14,10 +14,10 @@ type CenterTreeProps = {
 
 // 樹冠に流す文字はエコ語の文字（#49）。共有定数 MATRIX_GLYPHS（ひらがな・漢字）を使う。
 
-// 樹冠 canvas の論理サイズ（CSS px）。SVGの木（360×468）の樹冠位置に重ねる。
-// stage 拡大・満開発光は CSS（.canopy）が担う。
-const CANOPY_W = 500
-const CANOPY_H = 380
+// 樹冠 canvas の論理サイズ（CSS px）。木（360幅）の樹冠位置に重ねる。横へモリモリ広げるため幅を確保する。
+// stage 拡大・満開発光は CSS（.canopy）が担う。CSS 側の .canopy 幅・left もこの値に合わせること。
+const CANOPY_W = 640
+const CANOPY_H = 400
 // 葉＝極小文字のアスキーアート（#53）。エコ語録の文字を密に敷き詰めて葉の形を作り、左→右の虹色にする。
 const CELL = 9 // セルの配置ピッチ（極小文字の間隔）
 const GLYPH_FONT = 9 // 文字サイズ（極小）。CELL と同等で密に敷いて“葉の粒”に見せる
@@ -25,49 +25,48 @@ const HUE_SPAN = 300 // 左→右の虹の色相幅（0=赤 → 300=紫）。多
 const TWINKLE_MS = 110 // 通常時の再描画間隔（ms）。毎フレーム描かず間引いて「ほぼ静止＋微かな点滅」にする
 const SWAP_RATE = 0.04 // 1tickで文字を差し替えるセルの割合（チラつき）
 const SPARKLE_RATE = 0.06 // 1tickで一瞬きらめかせる（白寄りに明るくする）セルの割合
+// 葉の形を自然に見せるための“ゆらぎ”（#53 自然化）。規則的なグリッド＋きれいな円の縁を崩す。
+const JITTER = 0.85 // セル位置のランダムずらし量（CELL に対する比率）。格子の整列を崩す
+const EDGE_SOFT = 0.42 // 縁のフェード幅（深さ0〜1のうちこの範囲で配置確率を立ち上げる）。大きいほど縁がフワッと粗くなる
+const EDGE_FLOOR = 0.08 // 最外周セルの配置確率（小さいほど縁がまばら＝ギザギザに）
+const CORE_FILL = 0.96 // 内側セルの配置確率（モリモリに密集させる。1未満で内部にも自然な隙間を残す）
+const CORE_LAYERS = 3 // 中心部で1格子点に重ねる文字の最大枚数（#53 重なり増し）。縁=1枚、深いほどこの枚数まで重ねる
 
-// 葉の塊（ふくらみ）。複数の円を重ねて、横に大きく広がるモリモリの樹冠シルエットを作る（canvas座標。中心 x=250）。
-// この円の内側にだけ極小文字の葉セルを敷く（inCrown 判定に使う）。
+// 葉の塊（ふくらみ）。大小の円を不規則・左右非対称に重ねて、モリモリした自然な樹冠シルエットを作る
+// （canvas座標。中心 x=320）。左右をミラーにせず、サイズ・位置をばらつかせ、外周に突起を散らして
+// 「横長の楕円」っぽさを消す。この円の内側にだけ極小文字の葉セルを敷く（crownDepth 判定に使う）。
 const CLUMPS = [
-  { x: 250, y: 135, r: 148 }, // 中央の大きな塊
-  { x: 135, y: 170, r: 115 }, // 左
-  { x: 365, y: 170, r: 115 }, // 右
-  { x: 68, y: 190, r: 82 }, // 左外
-  { x: 432, y: 190, r: 82 }, // 右外
-  { x: 250, y: 200, r: 112 }, // 下中央（枝に被さる）
-  { x: 175, y: 96, r: 96 }, // 上・左
-  { x: 325, y: 96, r: 96 }, // 上・右
-  { x: 250, y: 68, r: 84 }, // 頂点
+  // 中核（非対称：右をやや大きく・低めに）
+  { x: 315, y: 175, r: 165 }, // 中央大
+  { x: 195, y: 150, r: 120 }, // 左上寄り
+  { x: 455, y: 168, r: 132 }, // 右（大きめ・少し下）
+  { x: 112, y: 205, r: 98 }, // 左外
+  { x: 540, y: 198, r: 100 }, // 右外
+  { x: 300, y: 132, r: 110 }, // 上中の厚み
+  // 上の突起（高さ・大きさをバラす＝でこぼこの頭）
+  { x: 250, y: 98, r: 86 }, // 上・左寄りの出っ張り
+  { x: 362, y: 80, r: 94 }, // 上・中右の高い出っ張り
+  { x: 432, y: 104, r: 76 }, // 上・右の小突起
+  { x: 168, y: 110, r: 74 }, // 上・左の小突起
+  { x: 92, y: 152, r: 72 }, // 左肩の高い出っ張り
+  // 横の不規則な張り出し
+  { x: 575, y: 232, r: 68 }, // 右の出っ張り
+  { x: 66, y: 238, r: 64 }, // 左の小突起
+  // 下の塊（左右非対称・大小ばらつき）
+  { x: 320, y: 252, r: 138 }, // 下中央
+  { x: 215, y: 286, r: 100 }, // 左下
+  { x: 448, y: 272, r: 110 }, // 右下（大きめ）
+  { x: 138, y: 286, r: 78 }, // 左下外
+  { x: 520, y: 300, r: 84 }, // 右下外
+  { x: 332, y: 305, r: 90 }, // 最下中央（少し右寄り）
+  { x: 392, y: 300, r: 72 }, // 下の小突起
 ]
 
-// 樹冠の下から垂れ落ちる“雫”（しだれ柳のようなドリップ）。各帯にも葉セルを敷き、
-// 葉の下に文字が滴るようなシルエットを作る（inCrown 判定に使う）。
-const DRIPS = [
-  { x: 92, top: 220, bottom: 298, hw: 7 },
-  { x: 120, top: 235, bottom: 320, hw: 9 },
-  { x: 175, top: 252, bottom: 342, hw: 8 },
-  { x: 215, top: 260, bottom: 352, hw: 9 },
-  { x: 250, top: 265, bottom: 360, hw: 10 },
-  { x: 285, top: 260, bottom: 352, hw: 9 },
-  { x: 325, top: 252, bottom: 342, hw: 8 },
-  { x: 380, top: 235, bottom: 320, hw: 9 },
-  { x: 408, top: 220, bottom: 298, hw: 7 },
-]
-
-// 葉セルを敷く範囲（葉の塊＋ドリップ帯の全体）。色相(左→右)の正規化にも使う。シルエット外は inCrown で除外。
-const CROWN_MIN_X = Math.min(
-  ...CLUMPS.map((c) => c.x - c.r),
-  ...DRIPS.map((d) => d.x - d.hw)
-)
-const CROWN_MAX_X = Math.max(
-  ...CLUMPS.map((c) => c.x + c.r),
-  ...DRIPS.map((d) => d.x + d.hw)
-)
+// 葉セルを敷く範囲（葉の塊の全体）。色相(左→右)の正規化にも使う。シルエット外は crownDepth で除外。
+const CROWN_MIN_X = Math.min(...CLUMPS.map((c) => c.x - c.r))
+const CROWN_MAX_X = Math.max(...CLUMPS.map((c) => c.x + c.r))
 const CROWN_MIN_Y = Math.min(...CLUMPS.map((c) => c.y - c.r))
-const CROWN_MAX_Y = Math.max(
-  ...CLUMPS.map((c) => c.y + c.r),
-  ...DRIPS.map((d) => d.bottom)
-)
+const CROWN_MAX_Y = Math.max(...CLUMPS.map((c) => c.y + c.r))
 
 // 葉を構成する1セル（極小文字）。位置・色相・基準の明るさは固定。点滅はtickで一時的に付与する。
 type Cell = {
@@ -107,18 +106,17 @@ const CenterTree = forwardRef<HTMLDivElement, CenterTreeProps>(function CenterTr
 
     const pick = (): string => MATRIX_GLYPHS[(Math.random() * MATRIX_GLYPHS.length) | 0]
 
-    // 葉のシルエット内かどうか（CLUMPS の円、または DRIPS の垂れ帯の和）。
-    // この内側だけにセルを置くことで、極小文字の集合が“葉の形”になる。
-    const inCrown = (x: number, y: number): boolean => {
+    // 葉のシルエット内での“深さ”（0=外、1=中心）を返す。重なる CLUMPS 円の最大値。
+    // 縁ほど 0 に近づくので、これを使って外周セルを確率的に間引き、自然なギザギザの縁にする。
+    const crownDepth = (x: number, y: number): number => {
+      let depth = 0
       for (const c of CLUMPS) {
         const dx = x - c.x
         const dy = y - c.y
-        if (dx * dx + dy * dy <= c.r * c.r) return true
+        const d = 1 - Math.hypot(dx, dy) / c.r
+        if (d > depth) depth = d
       }
-      for (const d of DRIPS) {
-        if (x >= d.x - d.hw && x <= d.x + d.hw && y >= d.top && y <= d.bottom) return true
-      }
-      return false
+      return depth // <=0 はシルエット外
     }
 
     // 左→右の虹色（赤→紫）。x 位置で色相を割り当てる（多様性のイメージ）。
@@ -127,22 +125,43 @@ const CenterTree = forwardRef<HTMLDivElement, CenterTreeProps>(function CenterTr
       return ((x - CROWN_MIN_X) / span) * HUE_SPAN
     }
 
-    // 葉セルのグリッドを作る（初期化時1回）。シルエット内かつ canvas 内のセルだけ採用する。
+    // 滑らかな立ち上がり（smoothstep）。縁を急峻でなくフワッとフェードさせるのに使う。
+    const smooth = (t: number): number => {
+      const c = Math.max(0, Math.min(1, t))
+      return c * c * (3 - 2 * c)
+    }
+
+    // 葉セルを作る（初期化時1回）。格子点ごとに、
+    //  1) 位置を CELL 内でランダムにずらして整列を崩し（JITTER）、
+    //  2) 縁ほど低い確率で間引いて（crownDepth→配置確率）自然な輪郭にし、
+    //  3) 中心（depth大）ほど1格子点に複数文字を重ねて密度＝重なりを増やす（CORE_LAYERS）。
     // 配列は固定長で使い回し、毎フレームの確保はしない（メモリリーク方針）。
     const cells: Cell[] = []
-    for (let y = CROWN_MIN_Y; y <= CROWN_MAX_Y; y += CELL) {
-      if (y < 0 || y > CANOPY_H) continue
-      for (let x = CROWN_MIN_X; x <= CROWN_MAX_X; x += CELL) {
-        if (x < 0 || x > CANOPY_W) continue
-        if (!inCrown(x, y)) continue
-        cells.push({
-          x,
-          y,
-          hue: hueAt(x),
-          ch: pick(),
-          baseAlpha: 0.55 + Math.random() * 0.4, // 葉に粗密の質感を出す
-          sparkle: Math.random() < 0.3 ? Math.random() : 0,
-        })
+    for (let gy = CROWN_MIN_Y; gy <= CROWN_MAX_Y; gy += CELL) {
+      for (let gx = CROWN_MIN_X; gx <= CROWN_MAX_X; gx += CELL) {
+        // 格子点の深さで配置確率と重なり枚数を決める（格子点自体で判定し、文字位置は各枚ごとにゆらす）。
+        const depth = crownDepth(gx, gy)
+        if (depth <= 0) continue
+        const fill = smooth(depth / EDGE_SOFT) // 0(縁)→1(内側)
+        // 縁（fill小）ほどまばら、内側（fill大）ほど密に配置する。
+        const p = EDGE_FLOOR + (CORE_FILL - EDGE_FLOOR) * fill
+        // 重なり枚数：縁は1枚、内側ほど CORE_LAYERS 枚まで増やす。各枚を別位置にずらして文字を重ねる。
+        const layers = 1 + Math.round((CORE_LAYERS - 1) * fill)
+        for (let k = 0; k < layers; k++) {
+          if (Math.random() > p) continue
+          // 文字位置をゆらす（縁のラインも揺らいで直線/真円っぽさが消える。重ね文字も互いにずれる）。
+          const x = gx + (Math.random() - 0.5) * CELL * JITTER
+          const y = gy + (Math.random() - 0.5) * CELL * JITTER
+          if (x < 0 || x > CANOPY_W || y < 0 || y > CANOPY_H) continue
+          cells.push({
+            x,
+            y,
+            hue: hueAt(x),
+            ch: pick(),
+            baseAlpha: 0.5 + Math.random() * 0.45, // 葉に粗密の質感を出す
+            sparkle: Math.random() < 0.3 ? Math.random() : 0,
+          })
+        }
       }
     }
 
@@ -160,8 +179,8 @@ const CenterTree = forwardRef<HTMLDivElement, CenterTreeProps>(function CenterTr
 
     // 吸収演出（#44）の波紋。宣言が木に吸い込まれた瞬間、樹冠中央から外へ広がる光の輪。
     // レイン（上→下の流れ）とは別レイヤーの挙動として、通過する文字を一瞬白く強く光らせる。
-    const RIPPLE_X = 250 // 樹冠中央（canvas座標）
-    const RIPPLE_Y = 150
+    const RIPPLE_X = 320 // 樹冠中央（canvas座標。CANOPY_W の中央）
+    const RIPPLE_Y = 175
     const RIPPLE_MAX_AGE = 1200 // 波紋の寿命（ミリ秒）。吸収がゆっくりなのに合わせて広がりも穏やかに。
     const RIPPLE_MAX_R = 260 // 広がりきる半径
     const RIPPLE_BAND = 26 // 前縁の太さ（この帯に入った文字が光る）
@@ -317,7 +336,7 @@ const CenterTree = forwardRef<HTMLDivElement, CenterTreeProps>(function CenterTr
         {/* 幹・枝＝裸の木の画像（#52）。旧・発光SVGから差し替え。
             装飾用の静的画像で最適化不要・object-fit で表示制御するため素の <img> を使う。 */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img className={styles.tree} src="/images/tree.png" alt="" />
+        <img className={styles.tree} src="/images/tree_ver04.png" alt="" />
 
         {/* 樹冠＝エコ語録の極小文字によるアスキーアート的な葉（#53）。左→右の虹色（多様性）。
             canvas で描画し、ほぼ静止＋微かな点滅。#44 のパーティクル吸収先でもある。

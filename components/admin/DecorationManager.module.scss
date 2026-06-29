@@ -1,0 +1,95 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.error {
+  color: var(--color-error);
+  font-size: 0.9rem;
+}
+
+.subLabel {
+  font-size: 0.85rem;
+  color: var(--color-admin-muted);
+}
+
+.list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border: 1px solid var(--color-admin-border);
+  border-radius: 10px;
+  background-color: #ffffff;
+}
+
+.label {
+  font-size: 0.95rem;
+  font-weight: bold;
+  color: var(--color-admin-text);
+}
+
+// トグルスイッチ（チェックボックスを隠してスライダーで表現）。
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+
+  input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+}
+
+.slider {
+  position: relative;
+  display: inline-block;
+  width: 46px;
+  height: 26px;
+  border-radius: 999px;
+  background-color: var(--color-admin-border);
+  transition: background-color 0.2s ease;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: #ffffff;
+    transition: transform 0.2s ease;
+  }
+}
+
+// チェック時：アクセント色＋つまみを右へ。
+.switch input:checked + .slider {
+  background-color: var(--color-accent);
+}
+.switch input:checked + .slider::before {
+  transform: translateX(20px);
+}
+
+.switch input:focus-visible + .slider {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.state {
+  min-width: 2.4em;
+  font-size: 0.85rem;
+  font-weight: bold;
+  color: var(--color-admin-muted);
+}

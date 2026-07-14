@@ -1,0 +1,55 @@
+// 漂うタツノオトシゴの群れ（レア演出）。背景映像(0)の前・木(2)の後ろ（z-index:1）。
+// 横断ではなく、群れ全体が縦姿勢のままゆっくり上方へ漂い、左右にわずかにドリフトして浮遊する。
+.seahorse {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.seahorse[data-visible='true'] {
+  animation: seahorseDrift 28s linear; // 所要時間は TRAVERSE_MS と一致させる
+}
+
+// canvas の表示サイズ＝論理サイズ（660×600）。群れが収まる横長の領域に等倍で描く。
+.canvas {
+  display: block;
+  width: 660px;
+  height: 600px;
+}
+
+// 画面下の外 → ゆらゆらと左右にドリフトしながら上方へ漂い → 画面上の外へ。
+// 縦姿勢のままなので回転はさせず、左右に小さく揺らして浮遊感を出す。
+@keyframes seahorseDrift {
+  0% {
+    transform: translate(18vw, 96vh);
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  25% {
+    transform: translate(12vw, 68vh);
+  }
+  50% {
+    transform: translate(22vw, 44vh);
+  }
+  75% {
+    transform: translate(14vw, 20vh);
+  }
+  92% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(20vw, -40vh);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .seahorse[data-visible='true'] {
+    animation: none;
+  }
+}

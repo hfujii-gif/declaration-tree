@@ -1,0 +1,56 @@
+// 空飛ぶマンタ（エイ #55）。背景映像(0)の前・木(2)の後ろ（z-index:1）。
+// 横向き（側面視）。クジラと同じく左下→弧→右下へ横断し、進行方向へ機体を傾ける。
+.manta {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.manta[data-visible='true'] {
+  animation: mantaArc 38s linear; // 所要時間は TRAVERSE_MS と一致させる
+}
+
+// canvas の表示サイズ＝論理サイズ（700×440）。等倍で大きく描く。
+.canvas {
+  display: block;
+  width: 700px;
+  height: 440px;
+}
+
+// 左下の画面外 → 山なりに上がり → 右下の画面外へ（弧を描く）。
+// 弧の接線に合わせて機体を少し傾ける（上りは機首やや上＝負、下りは機首やや下＝正）。
+// クジラより浅い弧で、傾きも控えめにして優雅に滑らせる。
+@keyframes mantaArc {
+  0% {
+    transform: translate(-30vw, 30vh) rotate(-6deg);
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  25% {
+    transform: translate(5vw, 6vh) rotate(-4deg);
+  }
+  50% {
+    transform: translate(38vw, -14vh) rotate(0deg);
+  }
+  75% {
+    transform: translate(72vw, 6vh) rotate(4deg);
+  }
+  92% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(110vw, 30vh) rotate(6deg);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .manta[data-visible='true'] {
+    animation: none;
+  }
+}

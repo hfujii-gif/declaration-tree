@@ -14,78 +14,79 @@ type CenterTreeProps = {
 
 // 樹冠に流す文字はエコ語の文字（#49）。共有定数 MATRIX_GLYPHS（ひらがな・漢字）を使う。
 
-// 樹冠 canvas の論理サイズ（CSS px）。SVGの木（360×468）の樹冠位置に重ねる。
-// stage 拡大・満開発光は CSS（.canopy）が担う。
-const CANOPY_W = 500
-const CANOPY_H = 380
-// 全角（ひらがな・漢字）向けの寸法（#49）。字幅≈フォントサイズなので、列の横間隔・行の縦間隔は
-// フォントサイズより少し広くして文字どうしが重ならないようにする。
-const FONT_SIZE = 13 // 文字サイズ（全角）
-const COL_STEP = 15 // 列の横間隔（全角字幅＋わずかな余白）
-const LINE_HEIGHT = 15 // 列内の文字の縦間隔（全角字高＋わずかな余白）
-const TRAIL = 18 // 1列あたりの軌跡（ヘッド＋尾）の長さ。字が大きくなったぶん短くして埋まりを調整
+// 樹冠 canvas の論理サイズ（CSS px）。木（360幅）の樹冠位置に重ねる。横へモリモリ広げるため幅を確保する。
+// stage 拡大・満開発光は CSS（.canopy）が担う。CSS 側の .canopy 幅・left もこの値に合わせること。
+const CANOPY_W = 640
+const CANOPY_H = 400
+// 葉＝極小文字のアスキーアート（#53）。エコ語録の文字を密に敷き詰めて葉の形を作り、左→右の虹色にする。
+const CELL = 9 // セルの配置ピッチ（極小文字の間隔）
+const GLYPH_FONT = 9 // 文字サイズ（極小）。CELL と同等で密に敷いて“葉の粒”に見せる
+const HUE_SPAN = 300 // 左→右の虹の色相幅（0=赤 → 300=紫）。多様性（ダイバーシティ）を表す
+const TWINKLE_MS = 110 // 通常時の再描画間隔（ms）。毎フレーム描かず間引いて「ほぼ静止＋微かな点滅」にする
+const SWAP_RATE = 0.04 // 1tickで文字を差し替えるセルの割合（チラつき）
+const SPARKLE_RATE = 0.06 // 1tickで一瞬きらめかせる（白寄りに明るくする）セルの割合
+// 葉の形を自然に見せるための“ゆらぎ”（#53 自然化）。規則的なグリッド＋きれいな円の縁を崩す。
+const JITTER = 0.85 // セル位置のランダムずらし量（CELL に対する比率）。格子の整列を崩す
+const EDGE_SOFT = 0.42 // 縁のフェード幅（深さ0〜1のうちこの範囲で配置確率を立ち上げる）。大きいほど縁がフワッと粗くなる
+const EDGE_FLOOR = 0.08 // 最外周セルの配置確率（小さいほど縁がまばら＝ギザギザに）
+const CORE_FILL = 0.96 // 内側セルの配置確率（モリモリに密集させる。1未満で内部にも自然な隙間を残す）
+const CORE_LAYERS = 3 // 中心部で1格子点に重ねる文字の最大枚数（#53 重なり増し）。縁=1枚、深いほどこの枚数まで重ねる
 
-// 葉の塊（ふくらみ）。複数の円を重ねて、横に大きく広がるモリモリの緑の樹冠を作る（canvas座標。中心 x=250）。
-// 緑のグラデーションはこのふくらみにのみ描く。
+// 葉の塊（ふくらみ）。大小の円を不規則・左右非対称に重ねて、モリモリした自然な樹冠シルエットを作る
+// （canvas座標。中心 x=320）。左右をミラーにせず、サイズ・位置をばらつかせ、外周に突起を散らして
+// 「横長の楕円」っぽさを消す。この円の内側にだけ極小文字の葉セルを敷く（crownDepth 判定に使う）。
 const CLUMPS = [
-  { x: 250, y: 135, r: 148 }, // 中央の大きな塊
-  { x: 135, y: 170, r: 115 }, // 左
-  { x: 365, y: 170, r: 115 }, // 右
-  { x: 68, y: 190, r: 82 }, // 左外
-  { x: 432, y: 190, r: 82 }, // 右外
-  { x: 250, y: 200, r: 112 }, // 下中央（枝に被さる）
-  { x: 175, y: 96, r: 96 }, // 上・左
-  { x: 325, y: 96, r: 96 }, // 上・右
-  { x: 250, y: 68, r: 84 }, // 頂点
+  // 中核（非対称：右をやや大きく・低めに）
+  { x: 315, y: 175, r: 165 }, // 中央大
+  { x: 195, y: 150, r: 120 }, // 左上寄り
+  { x: 455, y: 168, r: 132 }, // 右（大きめ・少し下）
+  { x: 112, y: 205, r: 98 }, // 左外
+  { x: 540, y: 198, r: 100 }, // 右外
+  { x: 300, y: 132, r: 110 }, // 上中の厚み
+  // 上の突起（高さ・大きさをバラす＝でこぼこの頭）
+  { x: 250, y: 98, r: 86 }, // 上・左寄りの出っ張り
+  { x: 362, y: 80, r: 94 }, // 上・中右の高い出っ張り
+  { x: 432, y: 104, r: 76 }, // 上・右の小突起
+  { x: 168, y: 110, r: 74 }, // 上・左の小突起
+  { x: 92, y: 152, r: 72 }, // 左肩の高い出っ張り
+  // 横の不規則な張り出し
+  { x: 575, y: 232, r: 68 }, // 右の出っ張り
+  { x: 66, y: 238, r: 64 }, // 左の小突起
+  // 下の塊（左右非対称・大小ばらつき）
+  { x: 320, y: 252, r: 138 }, // 下中央
+  { x: 215, y: 286, r: 100 }, // 左下
+  { x: 448, y: 272, r: 110 }, // 右下（大きめ）
+  { x: 138, y: 286, r: 78 }, // 左下外
+  { x: 520, y: 300, r: 84 }, // 右下外
+  { x: 332, y: 305, r: 90 }, // 最下中央（少し右寄り）
+  { x: 392, y: 300, r: 72 }, // 下の小突起
 ]
 
-// 樹冠の下から垂れ落ちるコードの“雫”（しだれ柳のようなドリップ）。各帯にだけレインを通して、
-// 葉の下に緑のコードが滴る表現を作る（緑の塊は描かず、レインのみ通す）。
-const DRIPS = [
-  { x: 92, top: 220, bottom: 298, hw: 7 },
-  { x: 120, top: 235, bottom: 320, hw: 9 },
-  { x: 175, top: 252, bottom: 342, hw: 8 },
-  { x: 215, top: 260, bottom: 352, hw: 9 },
-  { x: 250, top: 265, bottom: 360, hw: 10 },
-  { x: 285, top: 260, bottom: 352, hw: 9 },
-  { x: 325, top: 252, bottom: 342, hw: 8 },
-  { x: 380, top: 235, bottom: 320, hw: 9 },
-  { x: 408, top: 220, bottom: 298, hw: 7 },
-]
-
-// レイン列を敷く範囲（葉の塊＋ドリップ帯の全体）。はみ出しは clipCrown で形に抜く。
-const CROWN_MIN_X = Math.min(
-  ...CLUMPS.map((c) => c.x - c.r),
-  ...DRIPS.map((d) => d.x - d.hw)
-)
-const CROWN_MAX_X = Math.max(
-  ...CLUMPS.map((c) => c.x + c.r),
-  ...DRIPS.map((d) => d.x + d.hw)
-)
+// 葉セルを敷く範囲（葉の塊の全体）。色相(左→右)の正規化にも使う。シルエット外は crownDepth で除外。
+const CROWN_MIN_X = Math.min(...CLUMPS.map((c) => c.x - c.r))
+const CROWN_MAX_X = Math.max(...CLUMPS.map((c) => c.x + c.r))
 const CROWN_MIN_Y = Math.min(...CLUMPS.map((c) => c.y - c.r))
-const CROWN_MAX_Y = Math.max(
-  ...CLUMPS.map((c) => c.y + c.r),
-  ...DRIPS.map((d) => d.bottom)
-)
+const CROWN_MAX_Y = Math.max(...CLUMPS.map((c) => c.y + c.r))
 
-// 1本のレイン列。楕円内に収まる縦の文字列で、ヘッドが下へ流れ落ちる。
-type Column = {
+// 葉を構成する1セル（極小文字）。位置・色相・基準の明るさは固定。点滅はtickで一時的に付与する。
+type Cell = {
   x: number
-  topY: number
-  rows: number
-  head: number // 現在のヘッド行（実数）。下方向に増える。
-  speed: number // 1ミリ秒あたりの落下行数。
-  chars: string[] // 各行の文字（配列は使い回し、毎フレーム確保しない）。
+  y: number
+  hue: number // 左→右で割り当てる虹の色相（0〜HUE_SPAN）。
+  ch: string // 表示中の文字（配列は使い回し、毎フレーム確保しない）。
+  baseAlpha: number // 葉の質感のための基準透明度（セルごとにばらす）。
+  sparkle: number // 0〜1。一時的なきらめき量（白寄りに明るくする）。tickで減衰する。
 }
 
-// 中央に常設するサイバー風の木（#43）。発光する幹＋枝（SVGライン）に、
-// 樹冠は canvas で描く「本物のマトリックス・デジタルレイン」を重ねる。
-// 文字は実際に切り替わり、白いヘッドが下へ流れて尾がシアンにフェードする。
+// 中央に常設する木（#52で幹・枝はブラウンの画像 tree.png）。樹冠は canvas で描く
+// 「エコ語録の極小文字を密に敷き詰めたアスキーアート的な葉」（#53）。
+// 葉は左→右の虹色（多様性）で、ほぼ静止しつつ一部の文字がチラつき・きらめく。
 //
 // 長時間稼働（8時間以上）のメモリリーク対策：
 //  - rAF の id を保持し、アンマウント時に必ず cancelAnimationFrame する
 //  - タブ非アクティブ時はループを停止し、復帰時に基準時刻をリセット（dtスパイク防止）
-//  - 列・文字配列は固定長で使い回し、毎フレームの確保をしない
+//  - セル配列は固定長で使い回し、毎フレームの確保をしない
+//  - 通常時は再描画を間引く（毎フレーム描かない＝低負荷）。波紋（#44）中だけ毎フレーム描く
 //  - prefers-reduced-motion 時はアニメーションせず静止フレームを1枚だけ描く
 //
 // stage（data-stage）で樹冠が拡大、満開（data-bloomed）で発光最大化。いずれも CSS が担当する。
@@ -105,60 +106,81 @@ const CenterTree = forwardRef<HTMLDivElement, CenterTreeProps>(function CenterTr
 
     const pick = (): string => MATRIX_GLYPHS[(Math.random() * MATRIX_GLYPHS.length) | 0]
 
-    // 葉の塊（ふくらみ）の緑グラデーション。中心が濃く端へ透明。固定なので一度だけ生成する。
-    // 複数を重ねて描くことで、不透明感のあるモリモリした緑の樹冠になる。
-    const clumpFills = CLUMPS.map((c) => {
-      const g = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, c.r)
-      g.addColorStop(0, 'rgba(88, 206, 108, 0.95)')
-      g.addColorStop(0.5, 'rgba(52, 176, 80, 0.62)')
-      g.addColorStop(1, 'rgba(40, 150, 70, 0)')
-      return { c, g }
-    })
-
-    // レインを通す形（葉のふくらみ＋下に垂れるドリップ帯の和）をクリップパスにする。
-    // これにより、葉の内側は密に、葉の下はドリップ帯に沿って滴るコードだけが見える。
-    const clipCrown = (): void => {
-      ctx.beginPath()
-      for (const { c } of clumpFills) {
-        ctx.moveTo(c.x + c.r, c.y)
-        ctx.arc(c.x, c.y, c.r, 0, Math.PI * 2)
+    // 葉のシルエット内での“深さ”（0=外、1=中心）を返す。重なる CLUMPS 円の最大値。
+    // 縁ほど 0 に近づくので、これを使って外周セルを確率的に間引き、自然なギザギザの縁にする。
+    const crownDepth = (x: number, y: number): number => {
+      let depth = 0
+      for (const c of CLUMPS) {
+        const dx = x - c.x
+        const dy = y - c.y
+        const d = 1 - Math.hypot(dx, dy) / c.r
+        if (d > depth) depth = d
       }
-      for (const d of DRIPS) {
-        ctx.rect(d.x - d.hw, d.top, d.hw * 2, d.bottom - d.top)
-      }
-      ctx.clip()
+      return depth // <=0 はシルエット外
     }
 
-    // DPR を反映してバッキングストアを設定（高解像度ビジョンでも文字をくっきり描く）。
+    // 左→右の虹色（赤→紫）。x 位置で色相を割り当てる（多様性のイメージ）。
+    const hueAt = (x: number): number => {
+      const span = Math.max(1, CROWN_MAX_X - CROWN_MIN_X)
+      return ((x - CROWN_MIN_X) / span) * HUE_SPAN
+    }
+
+    // 滑らかな立ち上がり（smoothstep）。縁を急峻でなくフワッとフェードさせるのに使う。
+    const smooth = (t: number): number => {
+      const c = Math.max(0, Math.min(1, t))
+      return c * c * (3 - 2 * c)
+    }
+
+    // 葉セルを作る（初期化時1回）。格子点ごとに、
+    //  1) 位置を CELL 内でランダムにずらして整列を崩し（JITTER）、
+    //  2) 縁ほど低い確率で間引いて（crownDepth→配置確率）自然な輪郭にし、
+    //  3) 中心（depth大）ほど1格子点に複数文字を重ねて密度＝重なりを増やす（CORE_LAYERS）。
+    // 配列は固定長で使い回し、毎フレームの確保はしない（メモリリーク方針）。
+    const cells: Cell[] = []
+    for (let gy = CROWN_MIN_Y; gy <= CROWN_MAX_Y; gy += CELL) {
+      for (let gx = CROWN_MIN_X; gx <= CROWN_MAX_X; gx += CELL) {
+        // 格子点の深さで配置確率と重なり枚数を決める（格子点自体で判定し、文字位置は各枚ごとにゆらす）。
+        const depth = crownDepth(gx, gy)
+        if (depth <= 0) continue
+        const fill = smooth(depth / EDGE_SOFT) // 0(縁)→1(内側)
+        // 縁（fill小）ほどまばら、内側（fill大）ほど密に配置する。
+        const p = EDGE_FLOOR + (CORE_FILL - EDGE_FLOOR) * fill
+        // 重なり枚数：縁は1枚、内側ほど CORE_LAYERS 枚まで増やす。各枚を別位置にずらして文字を重ねる。
+        const layers = 1 + Math.round((CORE_LAYERS - 1) * fill)
+        for (let k = 0; k < layers; k++) {
+          if (Math.random() > p) continue
+          // 文字位置をゆらす（縁のラインも揺らいで直線/真円っぽさが消える。重ね文字も互いにずれる）。
+          const x = gx + (Math.random() - 0.5) * CELL * JITTER
+          const y = gy + (Math.random() - 0.5) * CELL * JITTER
+          if (x < 0 || x > CANOPY_W || y < 0 || y > CANOPY_H) continue
+          cells.push({
+            x,
+            y,
+            hue: hueAt(x),
+            ch: pick(),
+            baseAlpha: 0.5 + Math.random() * 0.45, // 葉に粗密の質感を出す
+            sparkle: Math.random() < 0.3 ? Math.random() : 0,
+          })
+        }
+      }
+    }
+
+    // DPR を反映してバッキングストアを設定（高解像度ビジョンでも極小文字をくっきり描く）。
     const setup = (): void => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2) // 負荷対策に上限を設ける
       canvas.width = Math.round(CANOPY_W * dpr)
       canvas.height = Math.round(CANOPY_H * dpr)
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-      ctx.font = `700 ${FONT_SIZE}px ${MATRIX_FONT_STACK}`
+      ctx.font = `700 ${GLYPH_FONT}px ${MATRIX_FONT_STACK}`
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
     }
     setup()
 
-    // 樹冠のバウンディング全体に縦のレイン列を敷き詰める（はみ出しは clipCrown で葉の形に抜く）。
-    const rows = Math.max(1, Math.floor((CROWN_MAX_Y - CROWN_MIN_Y) / LINE_HEIGHT))
-    const columns: Column[] = []
-    for (let x = CROWN_MIN_X; x <= CROWN_MAX_X; x += COL_STEP) {
-      columns.push({
-        x,
-        topY: CROWN_MIN_Y,
-        rows,
-        head: -Math.random() * rows, // バラけたタイミングで落とし始める
-        speed: 0.004 + Math.random() * 0.008, // 列ごとに速度差
-        chars: new Array<string>(rows).fill(''),
-      })
-    }
-
     // 吸収演出（#44）の波紋。宣言が木に吸い込まれた瞬間、樹冠中央から外へ広がる光の輪。
     // レイン（上→下の流れ）とは別レイヤーの挙動として、通過する文字を一瞬白く強く光らせる。
-    const RIPPLE_X = 250 // 樹冠中央（canvas座標）
-    const RIPPLE_Y = 150
+    const RIPPLE_X = 320 // 樹冠中央（canvas座標。CANOPY_W の中央）
+    const RIPPLE_Y = 175
     const RIPPLE_MAX_AGE = 1200 // 波紋の寿命（ミリ秒）。吸収がゆっくりなのに合わせて広がりも穏やかに。
     const RIPPLE_MAX_R = 260 // 広がりきる半径
     const RIPPLE_BAND = 26 // 前縁の太さ（この帯に入った文字が光る）
@@ -176,49 +198,31 @@ const CenterTree = forwardRef<HTMLDivElement, CenterTreeProps>(function CenterTr
       return boost
     }
 
-    // 現在の状態を1フレーム描画する。透明オーバーレイなので毎回クリアして軌跡を alpha で表現する。
+    // 現在の状態を1フレーム描画する。葉セル（極小文字）を左→右の虹色で敷き詰め、
+    // きらめき・吸収波紋（#44）を上乗せする。透明オーバーレイなので毎回クリアする。
     const draw = (): void => {
       ctx.clearRect(0, 0, CANOPY_W, CANOPY_H)
-
-      // 下地：緑の葉の塊（ふくらみを重ねてモリモリした緑の樹冠を作る）。
-      for (const { c, g } of clumpFills) {
-        ctx.fillStyle = g
-        ctx.beginPath()
-        ctx.arc(c.x, c.y, c.r, 0, Math.PI * 2)
-        ctx.fill()
-      }
-
-      // 上に流れ落ちる英数字のデジタルレイン（樹冠の形にクリップして葉の内側だけに描く）。
-      ctx.save()
-      clipCrown()
-      for (const c of columns) {
-        const headRow = Math.floor(c.head)
-        for (let k = 0; k < TRAIL; k++) {
-          const row = headRow - k
-          if (row < 0 || row >= c.rows) continue
-          if (!c.chars[row]) c.chars[row] = pick()
-          const y = c.topY + row * LINE_HEIGHT + LINE_HEIGHT / 2
-          const boost = rippleBoost(c.x, y)
-          if (boost > 0.04) {
-            // 波紋の前縁：吸収の波が通過する瞬間、文字を白く強く光らせる（中央から広がる輪）。
-            ctx.shadowColor = 'rgba(190,255,215,0.95)'
-            ctx.shadowBlur = 6 + 12 * boost
-            ctx.fillStyle = `rgba(235,255,240,${Math.min(1, 0.5 + boost)})`
-          } else if (k === 0) {
-            // ヘッド：白〜淡緑で強く、緑のグローを乗せる。
-            ctx.shadowColor = 'rgba(90,240,130,0.9)'
-            ctx.shadowBlur = 8
-            ctx.fillStyle = 'rgba(228,255,230,1)'
-          } else {
-            // 尾：緑で徐々にフェード。
-            ctx.shadowBlur = 0
-            const alpha = Math.max(0, 1 - k / TRAIL) * 0.85
-            ctx.fillStyle = `rgba(70,215,105,${alpha})`
-          }
-          ctx.fillText(c.chars[row], c.x, y)
+      const hasRipple = ripples.length > 0
+      for (const c of cells) {
+        const boost = hasRipple ? rippleBoost(c.x, c.y) : 0
+        if (boost > 0.04) {
+          // 波紋の前縁：吸収の波が通過する瞬間、文字を白く強く光らせる（中央から広がる輪）。
+          ctx.shadowColor = 'rgba(235,255,245,0.95)'
+          ctx.shadowBlur = 4 + 8 * boost
+          ctx.fillStyle = `rgba(240,255,248,${Math.min(1, 0.6 + boost)})`
+        } else if (c.sparkle > 0.02) {
+          // きらめき：その色相のまま白寄りに明るくして“葉が光る”瞬間を作る。
+          const light = 70 + 25 * c.sparkle
+          ctx.shadowColor = `hsla(${c.hue}, 100%, 80%, 0.9)`
+          ctx.shadowBlur = 6 * c.sparkle
+          ctx.fillStyle = `hsla(${c.hue}, 95%, ${light}%, ${Math.min(1, c.baseAlpha + 0.3 * c.sparkle)})`
+        } else {
+          // 通常の葉：左→右の虹色。彩度・明度を確保して可読性を保つ。
+          ctx.shadowBlur = 0
+          ctx.fillStyle = `hsla(${c.hue}, 85%, 62%, ${c.baseAlpha})`
         }
+        ctx.fillText(c.ch, c.x, c.y)
       }
-      ctx.restore()
       ctx.shadowBlur = 0
     }
 
@@ -227,6 +231,19 @@ const CenterTree = forwardRef<HTMLDivElement, CenterTreeProps>(function CenterTr
     let rafId = 0
     let running = false
     let last = 0
+    let acc = 0 // 通常時の再描画間引き用の時間アキュムレータ（ms）
+
+    // 通常時の微かな点滅：一部セルの文字を差し替え、一部を一瞬きらめかせ、既存のきらめきを減衰させる。
+    const twinkle = (): void => {
+      const n = cells.length
+      const swaps = (n * SWAP_RATE) | 0
+      for (let i = 0; i < swaps; i++) cells[(Math.random() * n) | 0].ch = pick()
+      const sparks = (n * SPARKLE_RATE) | 0
+      for (let i = 0; i < sparks; i++) {
+        cells[(Math.random() * n) | 0].sparkle = 0.6 + Math.random() * 0.4
+      }
+      for (const c of cells) if (c.sparkle > 0) c.sparkle = Math.max(0, c.sparkle - 0.25)
+    }
 
     const tick = (now: number): void => {
       if (!last) last = now
@@ -234,33 +251,23 @@ const CenterTree = forwardRef<HTMLDivElement, CenterTreeProps>(function CenterTr
       last = now
       if (dt > 100) dt = 100 // タブ復帰時などの巨大 dt を抑える（一気に飛ばさない）
 
-      // 波紋（吸収時）の寿命を進め、広がりきったものを捨てる。
-      for (let i = ripples.length - 1; i >= 0; i--) {
-        ripples[i].age += dt
-        if (ripples[i].age >= RIPPLE_MAX_AGE) ripples.splice(i, 1)
-      }
-
-      // 波紋が広がっている間は、上→下のレインの流れを止める（波紋だけが動く）。
-      // 波紋が消えたら通常の流れを再開する。
-      if (ripples.length === 0) {
-        for (const c of columns) {
-          const prevHead = Math.floor(c.head)
-          c.head += c.speed * dt
-          const newHead = Math.floor(c.head)
-          if (newHead !== prevHead) {
-            // ヘッド前進時に新しい文字を割り当て、ときどき軌跡中の文字を差し替えてチラつかせる。
-            if (newHead >= 0 && newHead < c.rows) c.chars[newHead] = pick()
-            if (Math.random() < 0.3) c.chars[(Math.random() * c.rows) | 0] = pick()
-          }
-          // 末尾まで落ちきったらリセット（配列は fill で再利用＝メモリを確保しない）。
-          if (c.head - TRAIL > c.rows) {
-            c.head = -Math.random() * 6
-            c.speed = 0.004 + Math.random() * 0.008
-            c.chars.fill('')
-          }
+      if (ripples.length > 0) {
+        // 吸収中：波紋の寿命を進め、毎フレーム滑らかに描画する（短時間・低頻度）。
+        for (let i = ripples.length - 1; i >= 0; i--) {
+          ripples[i].age += dt
+          if (ripples[i].age >= RIPPLE_MAX_AGE) ripples.splice(i, 1)
+        }
+        draw()
+        acc = 0
+      } else {
+        // 通常時：間引いて点滅＋再描画する（毎フレーム描かない＝ほぼ静止・低負荷）。
+        acc += dt
+        if (acc >= TWINKLE_MS) {
+          acc = 0
+          twinkle()
+          draw()
         }
       }
-      draw()
       rafId = requestAnimationFrame(tick)
     }
 
@@ -268,6 +275,7 @@ const CenterTree = forwardRef<HTMLDivElement, CenterTreeProps>(function CenterTr
       if (running) return
       running = true
       last = 0 // 再開時は基準時刻をリセットして dt スパイクを防ぐ
+      acc = TWINKLE_MS // 開始直後に一度描く
       rafId = requestAnimationFrame(tick)
     }
     const stop = (): void => {
@@ -277,11 +285,7 @@ const CenterTree = forwardRef<HTMLDivElement, CenterTreeProps>(function CenterTr
     }
 
     if (reduced) {
-      // モーション抑制設定では静止画を1枚だけ描く（rAF を回さない）。
-      for (const c of columns) {
-        c.head = c.rows
-        for (let r = 0; r < c.rows; r++) c.chars[r] = pick()
-      }
+      // モーション抑制設定では点滅させず静止画を1枚だけ描く（rAF を回さない）。
       draw()
     } else {
       start()
@@ -303,8 +307,11 @@ const CenterTree = forwardRef<HTMLDivElement, CenterTreeProps>(function CenterTr
     }
     canvas.addEventListener('vision:absorb', onAbsorb)
 
-    // DPR が変わる環境変化（別モニタへの移動など）に追従して描き直す。
-    const onResize = (): void => setup()
+    // DPR が変わる環境変化（別モニタへの移動など）に追従して再設定し描き直す。
+    const onResize = (): void => {
+      setup()
+      draw()
+    }
     window.addEventListener('resize', onResize)
 
     return () => {
@@ -329,11 +336,11 @@ const CenterTree = forwardRef<HTMLDivElement, CenterTreeProps>(function CenterTr
         {/* 幹・枝＝裸の木の画像（#52）。旧・発光SVGから差し替え。
             装飾用の静的画像で最適化不要・object-fit で表示制御するため素の <img> を使う。 */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img className={styles.tree} src="/images/tree.png" alt="" />
+        <img className={styles.tree} src="/images/tree_ver04.png" alt="" />
 
-        {/* 樹冠＝マトリックス・デジタルレイン（#44 のパーティクル吸収先）。
-            canvas で実際に文字が切り替わる本物のレインを描く。stage で拡大・満開で発光最大化（CSS）。
-            data-canopy は #44 が吸収先の中心座標を算出するためのフック。 */}
+        {/* 樹冠＝エコ語録の極小文字によるアスキーアート的な葉（#53）。左→右の虹色（多様性）。
+            canvas で描画し、ほぼ静止＋微かな点滅。#44 のパーティクル吸収先でもある。
+            stage で拡大・満開で発光最大化（CSS）。data-canopy は #44 が吸収先の中心座標を算出するフック。 */}
         <canvas ref={canvasRef} className={styles.canopy} data-canopy="true" />
       </div>
     </div>

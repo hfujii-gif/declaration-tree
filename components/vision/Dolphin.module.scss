@@ -1,0 +1,57 @@
+// 跳ねるイルカ（レア演出）。背景映像(0)の前・木(2)の後ろ（z-index:1）。
+// 水面（画面下）から放物線を描いて跳び上がり、弧を描いて横断してまた入水する。
+.dolphin {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.dolphin[data-visible='true'] {
+  animation: dolphinJump 16s linear; // 所要時間は TRAVERSE_MS と一致させる
+}
+
+// canvas の表示サイズ＝論理サイズ（720×360）。等倍で大きく描く。
+// 弓なりの胴体（上に凸）が収まるよう、高さを CANVAS_H に合わせて確保する。
+.canvas {
+  display: block;
+  width: 720px;
+  height: 360px;
+}
+
+// 左下の水面外 → 放物線で高く跳び上がり → 右下の水面外へ入水する。
+// 跳躍の山なり：translateY が下(32vh)→上(-30vh)→下(32vh)。
+// 弧の接線に合わせて機首を傾ける（上昇時は機首やや上＝負、下降時はやや下＝正）。
+@keyframes dolphinJump {
+  0% {
+    transform: translate(-25vw, 32vh) rotate(-28deg);
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  30% {
+    transform: translate(10vw, -10vh) rotate(-14deg);
+  }
+  50% {
+    transform: translate(40vw, -30vh) rotate(0deg); // 放物線の頂点
+  }
+  70% {
+    transform: translate(70vw, -10vh) rotate(14deg);
+  }
+  92% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(105vw, 32vh) rotate(28deg);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dolphin[data-visible='true'] {
+    animation: none;
+  }
+}

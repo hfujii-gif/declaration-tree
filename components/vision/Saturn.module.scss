@@ -1,0 +1,46 @@
+// 土星（#55）。背景映像(0)の前・木(2)の後ろ（z-index:1）。
+// 画面右上の空に、エコ文字で作った惑星＋環を淡く浮かべる。操作は透過する。
+// 絵柄（金色・発光）はキャンバス描画側が担い、ここは配置・出現フェード・浮遊だけを担当する。
+.saturn {
+  position: absolute;
+  top: 9%;
+  right: 5%;
+  z-index: 1;
+  pointer-events: none;
+  // 出現・退場はフェードで滑らかに（VISIBLE_MS の前後）。
+  opacity: 0;
+  transition: opacity 4s ease;
+}
+
+.saturn[data-visible='true'] {
+  opacity: 0.92;
+  // 漂いは表示中のみ再生する（非表示中＝opacity:0 の間は回さない）。
+  animation: saturnFloat 18s ease-in-out infinite;
+}
+
+// 土星を描く canvas。論理サイズ（CANVAS_W×CANVAS_H）に合わせる。JS 側で DPR を反映する。
+.canvas {
+  display: block;
+  width: 360px;
+  height: 210px;
+}
+
+@keyframes saturnFloat {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-12px);
+  }
+}
+
+// モーション抑制設定では漂い・フェードを無効化する（出現はする）。
+@media (prefers-reduced-motion: reduce) {
+  .saturn {
+    transition: none;
+  }
+  .saturn[data-visible='true'] {
+    animation: none;
+  }
+}

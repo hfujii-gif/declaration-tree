@@ -1,0 +1,55 @@
+// 空飛ぶクジラ（#55）。背景映像(0)の前・木(2)の後ろ（z-index:1）。
+// 左下から右下へ、円（弧）を描くようにゆったり横断する。
+.whale {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.whale[data-visible='true'] {
+  animation: whaleArc 32s linear; // 所要時間は TRAVERSE_MS と一致させる
+}
+
+// canvas の表示サイズ＝論理サイズ（760×350）。等倍で大きく描く。
+.canvas {
+  display: block;
+  width: 760px;
+  height: 350px;
+}
+
+// 左下の画面外 → 山なりに上がり → 右下の画面外へ（円弧を描く）。
+// 弧の接線に合わせて機体を少し傾ける（上りは機首やや上＝負、下りは機首やや下＝正）。
+@keyframes whaleArc {
+  0% {
+    transform: translate(-30vw, 34vh) rotate(-9deg);
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  25% {
+    transform: translate(5vw, 0vh) rotate(-6deg);
+  }
+  50% {
+    transform: translate(38vw, -22vh) rotate(0deg);
+  }
+  75% {
+    transform: translate(72vw, 0vh) rotate(6deg);
+  }
+  92% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(110vw, 34vh) rotate(9deg);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .whale[data-visible='true'] {
+    animation: none;
+  }
+}

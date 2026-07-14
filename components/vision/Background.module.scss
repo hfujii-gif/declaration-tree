@@ -15,6 +15,8 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  // 星のキラキラを際立たせるため、動画のコントラストを上げる（#52 調整）。
+  filter: contrast(1.9);
   // 木・宣言テキスト・カウンターより奥に置く（pointer は拾わない）。
   pointer-events: none;
 }

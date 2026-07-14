@@ -1,0 +1,49 @@
+// UFO（#55）。背景映像(0)の前・木(2)の後ろ（z-index:1）。
+// 土星（右上）と重ならないよう画面左上の空に浮かべる。操作は透過する。
+// 絵柄（色・発光）はキャンバス描画側が担い、ここは配置・出現フェード・浮遊だけを担当する。
+.ufo {
+  position: absolute;
+  top: 11%;
+  left: 6%;
+  z-index: 1;
+  pointer-events: none;
+  // 出現・退場はフェードで滑らかに（VISIBLE_MS の前後）。
+  opacity: 0;
+  transition: opacity 4s ease;
+}
+
+.ufo[data-visible='true'] {
+  opacity: 0.92;
+  // 漂いは表示中のみ再生する（非表示中＝opacity:0 の間は回さない）。
+  animation: ufoFloat 22s ease-in-out infinite;
+}
+
+// UFO を描く canvas。論理サイズ（CANVAS_W×CANVAS_H）に合わせる。JS 側で DPR を反映する。
+.canvas {
+  display: block;
+  width: 320px;
+  height: 200px;
+}
+
+@keyframes ufoFloat {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  33% {
+    transform: translate(24px, -10px);
+  }
+  66% {
+    transform: translate(10px, 8px);
+  }
+}
+
+// モーション抑制設定では漂い・フェードを無効化する（出現はする）。
+@media (prefers-reduced-motion: reduce) {
+  .ufo {
+    transition: none;
+  }
+  .ufo[data-visible='true'] {
+    animation: none;
+  }
+}

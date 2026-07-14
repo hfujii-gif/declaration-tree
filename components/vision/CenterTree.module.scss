@@ -2,8 +2,9 @@
 .treeWrap {
   position: absolute;
   left: 50%;
-  bottom: 14%;
-  z-index: 1;
+  bottom: 6%;
+  // 背景映像(0)＜流れ星(1)＜木(2)＜カウンター(3)＜演出(4) の重ね順。
+  z-index: 2;
   transform-origin: bottom center;
   // 段階成長を滑らかに見せる。
   transition: transform 1.2s ease;
@@ -19,55 +20,60 @@
   transform-origin: bottom center;
 }
 
-// 幹・枝＝裸の木の画像（#52）。透過PNG（669×373）を object-fit: cover で左右の透明余白を切り、
-// 木を中央に実寸表示する。縦は box にちょうど収まり（クロップなし）、横の透明部分だけが切られる。
-// サイズ・位置は緑の樹冠（.canopy）が枝に重なるよう旧SVG（360×468）に近い寸法に合わせている。
+// 幹・枝＝裸の木の画像（#52）。透過PNG（669×373）。box を画像と同じ縦横比（669:373）に
+// 合わせる（高さ460 → 幅825）ことで、左右の枝を切らずに全体を表示する。
+// 縦に合わせた cover と同じ倍率・同じ画面位置のまま、横のクロップだけが解消される。
 .tree {
   display: block;
-  width: 360px;
+  width: 825px;
   height: 460px;
-  object-fit: cover;
+  object-fit: contain;
   object-position: center;
+  // 幹だけを下げる。レイアウト上の box は変えず（樹冠 .canopy は treeInner 基準のため位置不変）、
+  // 見た目だけ下方向へずらす。
+  transform: translateY(60px);
 }
 
-// 樹冠＝マトリックス・デジタルレインを描く canvas。木画像（360×460）の樹冠位置に重ねる。
+// 樹冠＝虹色の葉（極小文字のアスキーアート #53）を描く canvas。木画像（825×460）の樹冠位置に重ねる。
 // アニメーション本体は JS(rAF) 側。CSS は配置と stage 拡大・満開発光の見た目だけを担う。
+// グローは中立の白系（--color-canopy-glow）にして虹色が緑などに偏らないようにする。
 // stage が上がるほど下端基準で拡大する（下・外へ広がる）。
+// left は box 幅に追従させる（canopy 中心＝box 中心：(825-640)/2 = 92.5px）。box 幅変更時はここも更新する。
 .canopy {
   position: absolute;
-  left: -70px;
-  top: 0;
-  width: 500px;
-  height: 380px;
+  left: 92.5px;
+  top: -25px;
+  width: 640px;
+  height: 400px;
   transform-origin: center bottom;
   transition: transform 1.2s ease, filter 0.8s ease;
   transform: scale(1);
-  filter: drop-shadow(0 0 5px var(--color-leaf-glow));
+  filter: drop-shadow(0 0 5px var(--color-canopy-glow));
   pointer-events: none;
 }
 
-// stage が上がるほど樹冠（緑レイン）が大きく育ち、緑の発光も強まる。
+// stage が上がるほど樹冠（虹色の葉）が大きく育ち、白系の発光も強まる。
 // 最初からモリモリなので拡大は控えめにし、主に発光で“成長感”を出す。
 .treeWrap[data-stage='1'] .canopy {
   transform: scale(1.06);
-  filter: drop-shadow(0 0 7px rgba(60, 224, 106, 0.4));
+  filter: drop-shadow(0 0 7px rgba(255, 255, 255, 0.45));
 }
 .treeWrap[data-stage='2'] .canopy {
   transform: scale(1.12);
-  filter: drop-shadow(0 0 10px rgba(60, 224, 106, 0.5));
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.55));
 }
 .treeWrap[data-stage='3'] .canopy {
   transform: scale(1.18);
-  filter: drop-shadow(0 0 13px rgba(60, 224, 106, 0.6));
+  filter: drop-shadow(0 0 13px rgba(255, 255, 255, 0.65));
 }
 .treeWrap[data-stage='4'] .canopy {
   transform: scale(1.24);
-  filter: drop-shadow(0 0 17px rgba(60, 224, 106, 0.7));
+  filter: drop-shadow(0 0 17px rgba(255, 255, 255, 0.75));
 }
 
-// 10,000人達成後の満開定着（#45）。樹冠の緑レインの発光を最大化し、白〜淡緑に強く輝かせる。
-// 文字色はキャンバス描画側が制御するため、ここは輝度アップ＋強い緑グローで白熱させる。
+// 10,000人達成後の満開定着（#45）。樹冠の発光を最大化し、虹色の葉を白く強く輝かせる。
+// 文字色はキャンバス描画側が制御するため、ここは輝度アップ＋強い白グローで白熱させる。
 .treeWrap[data-bloomed='true'] .canopy {
   filter: brightness(1.5) drop-shadow(0 0 10px #ffffff)
-    drop-shadow(0 0 24px rgba(120, 245, 150, 0.85));
+    drop-shadow(0 0 24px rgba(255, 255, 255, 0.85));
 }

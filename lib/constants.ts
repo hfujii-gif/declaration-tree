@@ -15,7 +15,8 @@ export const ADMIN_PASSWORD_ENV = 'ADMIN_PASSWORD'
 // 環境・自然・エコにまつわる言葉を素材に、その文字（ひらがな・漢字）を集合として使う。
 // 樹冠レイン・宣言テキストの分解・マイルストーンのグリフ紙吹雪で共通利用する。
 // ※ 語の最終選定はクライアント確認のうえ調整可。ここを変えれば全演出の文字が変わる。
-const ECO_WORDS = [
+// 語そのものは流れ星アニメ（#55 ShootingStars）でも利用するため export する。
+export const ECO_WORDS = [
   // 環境・サステナビリティの語彙を中心に
   '環境', '地球', '自然', '未来', '命', '資源', '生態系', '共生',
   '循環', '再生', '省エネ', '節電', '節水', '節約', '脱炭素', '温暖化',
@@ -66,3 +67,41 @@ export const DECLARATION_BACKLOG_GAP_MS = 500
 // マイルストーン演出（#49 タスクA）を、それを起こした宣言の吸収完了の直後に詰めて流すときの短い“間”（ミリ秒）。
 // 宣言→マイルストーン、マイルストーン→宣言の境目で使い、因果を密に見せる。
 export const MILESTONE_FOLLOW_GAP_MS = 250
+
+// /vision の装飾演出（#55）。管理画面から個別に ON/OFF できる。
+// Firebase の settings/decorations に真偽値で保存する。キーが未設定のときは ON 扱い（デフォルト ON）。
+export const DECORATIONS = [
+  { key: 'shootingStars', label: '流れ星' },
+  { key: 'saturn', label: '土星' },
+  { key: 'ufo', label: 'UFO' },
+  { key: 'comet', label: '彗星' },
+  { key: 'rocket', label: 'ロケット' },
+  { key: 'whale', label: 'クジラ' },
+  { key: 'manta', label: 'マンタ' },
+  { key: 'jellyfish', label: 'クラゲ' },
+  { key: 'seaTurtle', label: 'ウミガメ' },
+  { key: 'dolphin', label: 'イルカ' },
+  { key: 'seahorse', label: 'タツノオトシゴ' },
+] as const
+
+export type DecorationKey = (typeof DECORATIONS)[number]['key']
+export type DecorationSettings = Record<DecorationKey, boolean>
+
+// 全 ON のデフォルト設定（未設定・読み込み失敗時のフォールバック）。
+export const DEFAULT_DECORATIONS: DecorationSettings = DECORATIONS.reduce(
+  (acc, d) => ({ ...acc, [d.key]: true }),
+  {} as DecorationSettings
+)
+
+// Firebase の生値を DecorationSettings に正規化する。boolean が入っているキーだけ反映し、
+// それ以外（未設定・型不一致）はデフォルト ON のままにする。
+export function normalizeDecorations(value: unknown): DecorationSettings {
+  const result: DecorationSettings = { ...DEFAULT_DECORATIONS }
+  if (value && typeof value === 'object') {
+    const obj = value as Record<string, unknown>
+    for (const d of DECORATIONS) {
+      if (typeof obj[d.key] === 'boolean') result[d.key] = obj[d.key] as boolean
+    }
+  }
+  return result
+}

@@ -19,16 +19,25 @@ export function useRareVisibility(opts: {
     let timer: ReturnType<typeof setTimeout>
     const rand = (min: number, max: number): number => min + Math.random() * (max - min)
 
+    // 確認用プレビュー：URL に ?preview が付いていれば休止を数秒に短縮し、すぐ繰り返し出す。
+    // パラメータが無ければ従来どおり（本番に影響しない）。当日のデバッグにも使える。
+    const preview =
+      typeof window !== 'undefined' &&
+      new URLSearchParams(window.location.search).has('preview')
+    const hMin = preview ? 2000 : hiddenMinMs
+    const hMax = preview ? 5000 : hiddenMaxMs
+    const first = preview ? 800 : firstDelayMs ?? rand(hiddenMinMs, hiddenMaxMs)
+
     const hide = (): void => {
       setVisible(false)
-      timer = setTimeout(show, rand(hiddenMinMs, hiddenMaxMs))
+      timer = setTimeout(show, rand(hMin, hMax))
     }
     const show = (): void => {
       setVisible(true)
       timer = setTimeout(hide, activeMs)
     }
 
-    timer = setTimeout(show, firstDelayMs ?? rand(hiddenMinMs, hiddenMaxMs))
+    timer = setTimeout(show, first)
     return () => clearTimeout(timer)
   }, [activeMs, hiddenMinMs, hiddenMaxMs, firstDelayMs])
 

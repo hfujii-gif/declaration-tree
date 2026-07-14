@@ -1,0 +1,55 @@
+// 泳ぐウミガメ（レア演出 #55 系）。背景映像(0)の前・木(2)の後ろ（z-index:1）。
+// 横向き（側面視）のウミガメが、クジラ(Whale)と同じく画面外左下→浅い弧→画面外右下へ横断する。
+.seaTurtle {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.seaTurtle[data-visible='true'] {
+  animation: turtleArc 40s linear; // 所要時間は TRAVERSE_MS と一致させる
+}
+
+// canvas の表示サイズ＝論理サイズ（640×400）。等倍で大きく描く。
+.canvas {
+  display: block;
+  width: 640px;
+  height: 400px;
+}
+
+// 左下の画面外 → 浅い弧で山なりに上がり → 右下の画面外へ（進行方向＝右）。
+// 弧の接線に合わせて機体を少し傾ける（上りは機首やや上＝負、下りは機首やや下＝正）。
+@keyframes turtleArc {
+  0% {
+    transform: translate(-30vw, 30vh) rotate(-7deg);
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  25% {
+    transform: translate(6vw, 8vh) rotate(-5deg);
+  }
+  50% {
+    transform: translate(40vw, -6vh) rotate(0deg);
+  }
+  75% {
+    transform: translate(72vw, 8vh) rotate(5deg);
+  }
+  92% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(110vw, 30vh) rotate(7deg);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .seaTurtle {
+    animation: none;
+  }
+}

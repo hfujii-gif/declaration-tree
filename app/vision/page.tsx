@@ -11,6 +11,11 @@ import Ufo from '@/components/vision/Ufo'
 import Comet from '@/components/vision/Comet'
 import Rocket from '@/components/vision/Rocket'
 import Whale from '@/components/vision/Whale'
+import Manta from '@/components/vision/Manta'
+import Jellyfish from '@/components/vision/Jellyfish'
+import SeaTurtle from '@/components/vision/SeaTurtle'
+import Dolphin from '@/components/vision/Dolphin'
+import Seahorse from '@/components/vision/Seahorse'
 import CenterTree from '@/components/vision/CenterTree'
 import Celebration from '@/components/vision/Celebration'
 import { useDeclarationStream } from '@/components/vision/useDeclarationStream'
@@ -172,6 +177,11 @@ export default function VisionPage() {
       {decorations.comet && <Comet />}
       {decorations.rocket && <Rocket />}
       {decorations.whale && <Whale />}
+      {decorations.manta && <Manta />}
+      {decorations.jellyfish && <Jellyfish />}
+      {decorations.seaTurtle && <SeaTurtle />}
+      {decorations.dolphin && <Dolphin />}
+      {decorations.seahorse && <Seahorse />}
       <CenterTree ref={treeRef} stage={stage} bloomed={bloomed} />
       <div className={styles.counter}>{count.toLocaleString()}人が宣言しました</div>
       <Celebration ref={celebrationRef} />

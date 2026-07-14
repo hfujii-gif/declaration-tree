@@ -77,6 +77,11 @@ export const DECORATIONS = [
   { key: 'comet', label: '彗星' },
   { key: 'rocket', label: 'ロケット' },
   { key: 'whale', label: 'クジラ' },
+  { key: 'manta', label: 'マンタ' },
+  { key: 'jellyfish', label: 'クラゲ' },
+  { key: 'seaTurtle', label: 'ウミガメ' },
+  { key: 'dolphin', label: 'イルカ' },
+  { key: 'seahorse', label: 'タツノオトシゴ' },
 ] as const
 
 export type DecorationKey = (typeof DECORATIONS)[number]['key']

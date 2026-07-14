@@ -1,0 +1,48 @@
+// クラゲの群れ（レア装飾）。背景映像(0)の前・木(2)の後ろ（z-index:1）。
+// 横断ではなく、画面下から上へゆっくり浮上させる（縦の浮遊）。
+.jellyfish {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.jellyfish[data-visible='true'] {
+  animation: jellyfishRise 30s linear; // 所要時間は TRAVERSE_MS と一致させる
+}
+
+// canvas の表示サイズ＝論理サイズ（600×680）。等倍で大きく描く。
+.canvas {
+  display: block;
+  width: 600px;
+  height: 680px;
+}
+
+// 画面下の外 → ゆっくり上へ浮上 → 画面上の外へ。左右にわずかに揺れながら漂う。
+@keyframes jellyfishRise {
+  0% {
+    transform: translate(8vw, 105vh);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  50% {
+    transform: translate(12vw, 38vh);
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(7vw, -75vh);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jellyfish {
+    animation: none;
+  }
+}

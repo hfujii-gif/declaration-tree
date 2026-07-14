@@ -5,17 +5,23 @@
   width: 100vw;
   height: 100vh;
   overflow: hidden;
+  // 大画面ビジョン（2m×4m・横長2:1）対応（#56）。横長では高さが制約側になるため、
+  // 主要要素を「基準高さ 1080px」に対するビューポート高さの比率で追従拡大させる。
+  // 出力解像度が上がっても各要素の画面占有率が一定に保たれ、木・文字が小さく映らない。
+  // ※このカスタムプロパティは子CSSモジュール（CenterTree 等）にも継承される。
+  --screen-scale: calc(100vh / 1080);
 }
 
 // 画面下部に常時表示する累計カウンター。最前面に置く。
 .counter {
   position: absolute;
-  bottom: 40px;
+  // 余白・文字サイズを画面追従させ、高解像度でも同じ占有率で表示する（#56）。
+  bottom: calc(40px * var(--screen-scale));
   left: 50%;
   transform: translateX(-50%);
   z-index: 3;
   color: var(--color-text);
-  font-size: 2.5rem;
+  font-size: calc(2.5rem * var(--screen-scale));
   font-weight: bold;
   text-align: center;
   white-space: nowrap;

@@ -330,7 +330,8 @@ export const playMilestone = (
     addShockwave(tl, layer, 0.08)
     pulseTree(tl, tree, 1.06, 0.4)
     burstGlyphs(layer, 130, BIT_COLORS)
-    showText(tl, layer, label, 'clamp(2rem, 6vmin, 4rem)', false, 0.6, 3)
+    // 上限は大画面ビジョン（#56）で頭打ちにならないよう引き上げる（vmin が実スケーラ）。
+    showText(tl, layer, label, 'clamp(2rem, 6vmin, 8rem)', false, 0.6, 3)
   } else if (stage === 2) {
     addFlash(tl, layer, 0.35, 0)
     addGlitch(tl, layer, 0.02)
@@ -339,7 +340,7 @@ export const playMilestone = (
     addRays(tl, layer, 16, 0.4)
     pulseTree(tl, tree, 1.08, 0.4)
     burstGlyphs(layer, 240, BIT_COLORS)
-    showText(tl, layer, label, 'clamp(2.4rem, 7vmin, 4.6rem)', false, 0.6, 3.2)
+    showText(tl, layer, label, 'clamp(2.4rem, 7vmin, 9rem)', false, 0.6, 3.2)
   } else {
     addFlash(tl, layer, 0.5, 0)
     addGlitch(tl, layer, 0.02)
@@ -348,7 +349,7 @@ export const playMilestone = (
     addRays(tl, layer, 24, 0.4)
     pulseTree(tl, tree, 1.1, 0.4)
     burstGlyphs(layer, 380, BIT_COLORS)
-    showText(tl, layer, label, 'clamp(2.8rem, 8vmin, 5.2rem)', true, 0.6, 3.5)
+    showText(tl, layer, label, 'clamp(2.8rem, 8vmin, 10rem)', true, 0.6, 3.5)
   }
   return tl
 }
@@ -368,7 +369,7 @@ export const playFullBloom = (layer: HTMLElement, tree: HTMLElement): gsap.core.
   // 画面を埋めるほどの量を、中央噴水＋全画面ばらまきの二段で出す。
   burstGlyphs(layer, 360, BIT_COLORS)
   burstGlyphs(layer, 520, BIT_COLORS, true)
-  showText(tl, layer, '10,000人達成！', 'clamp(3.2rem, 10vmin, 7rem)', true, 0.8, 4.5)
+  showText(tl, layer, '10,000人達成！', 'clamp(3.2rem, 10vmin, 14rem)', true, 0.8, 4.5)
   addSparkles(layer)
   return tl
 }
@@ -398,7 +399,7 @@ export const playDeclaration = (
     layer,
     'position:absolute;top:38%;left:50%;transform:translate(-50%,-50%);' +
       'max-width:62vw;text-align:center;line-height:1.3;' +
-      "font-size:clamp(2rem, 5.2vmin, 4.4rem);font-weight:800;font-family:'Arial',sans-serif;" +
+      "font-size:clamp(2rem, 5.2vmin, 9rem);font-weight:800;font-family:'Arial',sans-serif;" +
       'color:#ffffff;letter-spacing:0.02em;opacity:0;will-change:transform,opacity;' +
       'text-shadow:0 0 10px rgba(120,245,150,0.7), 0 2px 14px rgba(0,30,20,0.6);'
   )

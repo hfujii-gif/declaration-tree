@@ -51,7 +51,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .dolphin {
+  .dolphin[data-visible='true'] {
     animation: none;
   }
 }

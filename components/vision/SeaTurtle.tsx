@@ -69,7 +69,7 @@ type Flipper = {
 
 export default function SeaTurtle() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  // 他の大型レア（クジラ・マンタ）と休止時間をずらし、同時に出にくいようにする。
+  // 休止レンジは他の大型レア（クジラ・マンタ）と別値にしている（各生物が独立に乱数で決めるため、同時出現を厳密に防ぐものではない）。
   const visible = useRareVisibility({
     activeMs: TRAVERSE_MS,
     hiddenMinMs: 22 * 60 * 1000,

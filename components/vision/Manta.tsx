@@ -63,7 +63,7 @@ type TailCell = { frac: number; ch: string }
 
 export default function Manta() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  // クジラと休止時間をずらし、大型生物が同時に出にくいようにする。
+  // 休止レンジはクジラ等と別値にしている（各生物が独立に乱数で決めるため、同時出現を厳密に防ぐものではない）。
   const visible = useRareVisibility({
     activeMs: TRAVERSE_MS,
     hiddenMinMs: 25 * 60 * 1000,

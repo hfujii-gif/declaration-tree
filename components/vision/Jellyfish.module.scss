@@ -42,7 +42,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .jellyfish {
+  .jellyfish[data-visible='true'] {
     animation: none;
   }
 }

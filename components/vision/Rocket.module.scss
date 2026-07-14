@@ -39,7 +39,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .rocket {
+  .rocket[data-visible='true'] {
     animation: none;
   }
 }

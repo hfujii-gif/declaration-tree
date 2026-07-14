@@ -38,7 +38,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .comet {
+  .comet[data-visible='true'] {
     animation: none;
   }
 }

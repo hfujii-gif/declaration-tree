@@ -49,7 +49,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .seahorse {
+  .seahorse[data-visible='true'] {
     animation: none;
   }
 }

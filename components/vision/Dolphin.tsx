@@ -77,7 +77,7 @@ const inTriangle = (
 
 export default function Dolphin() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  // クジラ・マンタと休止時間をずらし、大型生物が同時に出にくいようにする。
+  // 休止レンジはクジラ・マンタと別値にしている（各生物が独立に乱数で決めるため、同時出現を厳密に防ぐものではない）。
   const visible = useRareVisibility({
     activeMs: TRAVERSE_MS,
     hiddenMinMs: 16 * 60 * 1000,

@@ -10,12 +10,12 @@
   // 出現・退場はフェードで滑らかに（VISIBLE_MS の前後）。
   opacity: 0;
   transition: opacity 4s ease;
-  // ゆっくり横に漂わせる（UFO らしいホバリング）。
-  animation: ufoFloat 22s ease-in-out infinite;
 }
 
 .ufo[data-visible='true'] {
   opacity: 0.92;
+  // 漂いは表示中のみ再生する（非表示中＝opacity:0 の間は回さない）。
+  animation: ufoFloat 22s ease-in-out infinite;
 }
 
 // UFO を描く canvas。論理サイズ（CANVAS_W×CANVAS_H）に合わせる。JS 側で DPR を反映する。
@@ -41,7 +41,9 @@
 // モーション抑制設定では漂い・フェードを無効化する（出現はする）。
 @media (prefers-reduced-motion: reduce) {
   .ufo {
-    animation: none;
     transition: none;
+  }
+  .ufo[data-visible='true'] {
+    animation: none;
   }
 }

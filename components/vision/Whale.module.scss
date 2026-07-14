@@ -49,7 +49,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .whale {
+  .whale[data-visible='true'] {
     animation: none;
   }
 }

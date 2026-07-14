@@ -49,7 +49,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .seaTurtle {
+  .seaTurtle[data-visible='true'] {
     animation: none;
   }
 }

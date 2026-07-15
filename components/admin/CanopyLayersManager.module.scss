@@ -1,0 +1,58 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  // 同じ「演出」タブ内で DecorationManager の下に並ぶため、区切りの余白と境界線を付ける。
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--color-admin-border);
+}
+
+.error {
+  color: var(--color-error);
+  font-size: 0.9rem;
+}
+
+.subLabel {
+  font-size: 0.85rem;
+  color: var(--color-admin-muted);
+}
+
+// 1〜5 のセグメント選択。
+.options {
+  display: flex;
+  gap: 8px;
+}
+
+.option {
+  flex: 1;
+  min-width: 44px;
+  padding: 12px 0;
+  border: 1px solid var(--color-admin-border);
+  border-radius: 10px;
+  background-color: #ffffff;
+  font-size: 1rem;
+  font-weight: bold;
+  color: var(--color-admin-text);
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+
+  &:hover {
+    border-color: var(--color-accent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+}
+
+// 選択中：アクセント色で塗る。
+.optionActive {
+  background-color: var(--color-accent);
+  border-color: var(--color-accent);
+  color: #ffffff;
+}

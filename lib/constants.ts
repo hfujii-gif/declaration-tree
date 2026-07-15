@@ -105,3 +105,18 @@ export function normalizeDecorations(value: unknown): DecorationSettings {
   }
   return result
 }
+
+// /vision 中央の木の樹冠（極小文字の葉）の重なり密度（#60）。中心部で1格子点に重ねる文字の最大枚数。
+// 管理画面から 1〜5 で変更し、Firebase の settings/canopyLayers に単一数値で保存する。
+export const CANOPY_LAYERS_MIN = 1
+export const CANOPY_LAYERS_MAX = 5
+export const CANOPY_LAYERS_DEFAULT = 3
+
+// Firebase の生値を 1〜5 の整数に正規化する。数値でない・範囲外・未設定はデフォルト（3）にフォールバックする。
+export function normalizeCanopyLayers(value: unknown): number {
+  const n = typeof value === 'number' ? value : Number(value)
+  if (!Number.isFinite(n)) return CANOPY_LAYERS_DEFAULT
+  const rounded = Math.round(n)
+  if (rounded < CANOPY_LAYERS_MIN || rounded > CANOPY_LAYERS_MAX) return CANOPY_LAYERS_DEFAULT
+  return rounded
+}

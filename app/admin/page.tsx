@@ -4,6 +4,7 @@ import { useState, useSyncExternalStore } from 'react'
 import DeclarationList from '@/components/admin/DeclarationList'
 import NgWordManager from '@/components/admin/NgWordManager'
 import DecorationManager from '@/components/admin/DecorationManager'
+import CanopyLayersManager from '@/components/admin/CanopyLayersManager'
 import styles from './page.module.scss'
 
 // localStorage に保存する認証フラグのキー。リロード後も認証を維持するために使う。
@@ -128,7 +129,7 @@ export default function AdminPage() {
             className={`${styles.navItem} ${tab === 'decorations' ? styles.navItemActive : ''}`}
             onClick={() => setTab('decorations')}
           >
-            演出 ON/OFF
+            演出設定
           </button>
         </nav>
       </aside>
@@ -136,7 +137,7 @@ export default function AdminPage() {
       <main className={styles.main}>
         <div className={styles.mainHeader}>
           <h1 className={styles.pageTitle}>
-            {tab === 'declarations' ? '宣言一覧' : tab === 'ngwords' ? 'NGワード管理' : '演出 ON/OFF'}
+            {tab === 'declarations' ? '宣言一覧' : tab === 'ngwords' ? 'NGワード管理' : '演出設定'}
           </h1>
           <button type="button" className={styles.logoutButton} onClick={handleLogout}>
             ログアウト
@@ -148,7 +149,10 @@ export default function AdminPage() {
           ) : tab === 'ngwords' ? (
             <NgWordManager />
           ) : (
-            <DecorationManager />
+            <>
+              <DecorationManager />
+              <CanopyLayersManager />
+            </>
           )}
         </div>
       </main>

@@ -13,9 +13,6 @@ import styles from './CenterTree.module.scss'
 type CenterTreeProps = {
   // 成長段階（#57）。累計件数で 小(0)/中(1)/大(2)。幹サイズ・樹冠のモリモリ・葉の色を段階変化させる。
   growthLevel: GrowthLevel
-  // 10,000人達成後の満開状態。true で樹冠レインの発光が最大化する（#11/#45）。
-  // 満開は count>=10000 由来の静的状態。フィナーレ演出は lib/animations.ts の playFullBloom が担当する。
-  bloomed?: boolean
   // 樹冠の葉の重なり密度＝中心部で1格子点に重ねる文字の最大枚数（#60）。管理画面から 1〜5 で変更する。
   // 未指定時は既定の CORE_LAYERS を使う。
   layers?: number
@@ -115,11 +112,12 @@ type Cell = {
 //  - 通常時は再描画を間引く（毎フレーム描かない＝低負荷）。波紋（#44）中だけ毎フレーム描く
 //  - prefers-reduced-motion 時はアニメーションせず静止フレームを1枚だけ描く
 //
-// growthLevel（data-growth・--growth-scale）で幹＋樹冠のサイズ、満開（data-bloomed）で発光最大化。
+// growthLevel（data-growth・--growth-scale）で幹＋樹冠のサイズを段階化する。
 // 樹冠のモリモリ（膨らみ量）・葉の色は growthLevel に応じて canvas 側で作り分ける。
+// 満開の発光は一時的（playFullBloom のフィナーレ中のみ）に変更したため、恒久的な発光定着は持たない（#57）。
 // ref は演出（パルス・満開ポップ）と #44 の吸収先座標算出のため親へ公開する。
 const CenterTree = forwardRef<HTMLDivElement, CenterTreeProps>(function CenterTree(
-  { growthLevel, bloomed = false, layers = CORE_LAYERS },
+  { growthLevel, layers = CORE_LAYERS },
   ref
 ) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -374,7 +372,6 @@ const CenterTree = forwardRef<HTMLDivElement, CenterTreeProps>(function CenterTr
       ref={ref}
       className={styles.treeWrap}
       data-growth={growthLevel}
-      data-bloomed={bloomed}
       // 成長段階の木全体スケール（#57）。単一の定義元（GROWTH_TREE_SCALE）から CSS 変数へ渡す。
       style={{ ['--growth-scale']: String(GROWTH_TREE_SCALE[growthLevel]) } as CSSProperties}
       aria-hidden="true"

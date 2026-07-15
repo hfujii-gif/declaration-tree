@@ -6,7 +6,8 @@
 // 確定方針（Issue #45）:
 //   1. 段階的に派手さUP（2,500 → 5,000 → 7,500 → 10,000 が頂点）
 //   2. 暖色（金/ピンク・紙吹雪・花びら）→ シアン/青/白のデジタル発光・データの粒・グリッチ・光のリング
-//   3. 10,000＝満開は「光が画面全体に広がる」演出。満開の定着（樹冠の発光最大化）は CenterTree の data-bloomed が担当
+//   3. 10,000＝満開は「光が画面全体に広がる」演出。発光は一時的（フィナーレ演出中のみ）で、
+//      到達後に発光し続ける定着（旧 data-bloomed）は廃止した（#57）。中間マイルストーン演出も廃止（達成演出は満開のみ）。
 //
 // 演出の質感メモ:
 //   - 光（グロー・光線）：ブラーでソフトにし、光線群はゆっくり回してきらめかせる。
@@ -315,6 +316,8 @@ const addSparkles = (layer: HTMLElement): void => {
 // ---- 公開API ----
 
 // 中間マイルストーン（stage 1=2,500 / 2=5,000 / 3=7,500）。stage が上がるほど部品を足して派手にする。
+// 現在は MILESTONES=[10000] のため呼び出し経路は到達不能（達成演出は満開のみ #57）。
+// 中間の派手演出を将来復活させる場合の受け口として温存する。
 export const playMilestone = (
   stage: number,
   count: number,
@@ -355,7 +358,7 @@ export const playMilestone = (
 }
 
 // 10,000人達成のフィナーレ（最も豪華）＝「光が画面全体に広がる」。
-// 満開の定着（樹冠の発光最大化）は data-bloomed（CenterTree）が担当する。
+// 発光は一時的（このフィナーレ演出中のみ）。到達後に発光し続ける定着（旧 data-bloomed）は廃止した（#57）。
 export const playFullBloom = (layer: HTMLElement, tree: HTMLElement): gsap.core.Timeline => {
   ensurePlugins()
   const tl = gsap.timeline()

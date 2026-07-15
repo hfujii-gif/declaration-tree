@@ -45,15 +45,8 @@
   width: 640px;
   height: 400px;
   transform-origin: center bottom;
-  // 満開発光のフェード用（transform は #57 で段階拡大しなくなったため filter のみ）。
-  transition: filter 0.8s ease;
+  // 樹冠の常時グロー（静的）。#57 で段階拡大も満開定着（旧 data-bloomed）も廃止したため、
+  // このフィルタを動的に変える箇所はない。満開の発光は playFullBloom のフィナーレ演出が一時的に担う。
   filter: drop-shadow(0 0 5px var(--color-canopy-glow));
   pointer-events: none;
-}
-
-// 10,000人達成後の満開定着（#45）。樹冠の発光を最大化し、虹色の葉を白く強く輝かせる。
-// 文字色はキャンバス描画側が制御するため、ここは輝度アップ＋強い白グローで白熱させる。
-.treeWrap[data-bloomed='true'] .canopy {
-  filter: brightness(1.5) drop-shadow(0 0 10px #ffffff)
-    drop-shadow(0 0 24px rgba(255, 255, 255, 0.85));
 }

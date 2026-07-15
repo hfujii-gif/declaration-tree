@@ -162,7 +162,8 @@ export default function VisionPage() {
       // 10,000人＝満開フィナーレ。
       enqueueBloom()
     } else {
-      // 2,500/5,000/7,500＝段階が上がるほど派手に。
+      // 中間マイルストーン演出。現在は MILESTONES=[10000] のため到達不能（達成演出は満開のみ #57）。
+      // 中間の派手演出（2,500/5,000/7,500 等）を将来復活させる場合の受け口として enqueueMilestone/playMilestone を残す。
       enqueueMilestone(targetIndex + 1, MILESTONES[targetIndex])
     }
   }, [count, enqueueMilestone, enqueueBloom])

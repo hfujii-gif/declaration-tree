@@ -121,11 +121,13 @@ export function computeGrowthLevel(count: number): GrowthLevel {
 
 // 段階別の木全体スケール係数（index=GrowthLevel）。#56 の base 係数(1.9)・--screen-scale に掛ける。
 // 小ほど幹＋樹冠が小さい。大=1.0（現状サイズ）。
-export const GROWTH_TREE_SCALE: readonly number[] = [0.62, 0.82, 1]
+// 3要素固定のタプル型にし、要素数と GrowthLevel(0|1|2) のズレをコンパイル時に検知する。
+export const GROWTH_TREE_SCALE: readonly [number, number, number] = [0.62, 0.82, 1]
 
 // 段階別の葉の色相レンジ（index=GrowthLevel）。start=左端の色相、span=左→右で広がる幅。
 // 小=緑のみ（緑付近に集約）→ 中=一部レインボー → 大=全色相（0→300＝現状の虹）。
-export const GROWTH_HUE: readonly { start: number; span: number }[] = [
+type HueRange = { start: number; span: number }
+export const GROWTH_HUE: readonly [HueRange, HueRange, HueRange] = [
   { start: 110, span: 25 },
   { start: 80, span: 160 },
   { start: 0, span: 300 },

@@ -1,4 +1,4 @@
-// 木の配置（#43 サイバー化）。画面中央下に立たせ、stage に応じて下端を基準に拡大する。
+// 木の配置（#43 サイバー化）。画面中央下に立たせ、下端を基準にスケールする。
 .treeWrap {
   position: absolute;
   left: 50%;
@@ -6,13 +6,10 @@
   // 背景映像(0)＜流れ星(1)＜木(2)＜カウンター(3)＜演出(4) の重ね順。
   z-index: 2;
   transform-origin: bottom center;
-  // 段階成長を滑らかに見せる。
-  transition: transform 1.2s ease;
-  // 木全体のサイズは一定にし、stage による成長はキャノピー（.canopy）の拡大で表現する。
-  // base 係数（大画面ビジョンで木を大きく見せるためのサイズ。1.9＝1080pで画面高の約80%）に
-  // 画面追従スケール（#56：--screen-scale＝innerHeight/1080）を掛け、高解像度でも木が小さく映らないようにする。
-  // ※このbase係数が木全体の見た目サイズの調整ダイヤル。段階拡大（.canopy）・パルス（.treeInner/GSAP）は別要素で非競合。
-  transform: translateX(-50%) scale(calc(1.9 * var(--screen-scale, 1)));
+  // 木全体のサイズ＝ base 係数(1.9：#56 大画面向け) × --screen-scale(#56：innerHeight/1080) × --growth-scale(#57：段階)。
+  // ※ base 係数 1.9 が全体サイズの調整ダイヤル。--growth-scale は成長段階（小0.62/中0.82/大1.0）。
+  // 成長のサイズ切替は発光オーバーレイ（#57）で覆い隠して瞬時に差し替えるため、transform に transition は付けない。
+  transform: translateX(-50%) scale(calc(1.9 * var(--screen-scale, 1) * var(--growth-scale, 1)));
 }
 
 // 木の内側ラッパー。マイルストーンのパルス（pulseTree）はこの要素を拡大→戻すため、
@@ -37,11 +34,10 @@
   transform: translateY(60px);
 }
 
-// 樹冠＝虹色の葉（極小文字のアスキーアート #53）を描く canvas。木画像（825×460）の樹冠位置に重ねる。
-// アニメーション本体は JS(rAF) 側。CSS は配置と stage 拡大・満開発光の見た目だけを担う。
-// グローは中立の白系（--color-canopy-glow）にして虹色が緑などに偏らないようにする。
-// stage が上がるほど下端基準で拡大する（下・外へ広がる）。
-// left は box 幅に追従させる（canopy 中心＝box 中心：(825-640)/2 = 92.5px）。box 幅変更時はここも更新する。
+// 樹冠＝葉（極小文字のアスキーアート #53）を描く canvas。木画像（825×460）の樹冠位置に重ねる。
+// アニメーション本体は JS(rAF) 側。成長段階（サイズ＝幹と一体で --growth-scale、モリモリ・色＝canvas再生成）は
+// #57 が担当。CSS は配置と満開発光だけを担う。グローは中立の白系（--color-canopy-glow）で色偏りを防ぐ。
+// left は box 幅に追従（canopy 中心＝box 中心：(825-640)/2 = 92.5px）。box 幅変更時はここも更新する。
 .canopy {
   position: absolute;
   left: 92.5px;
@@ -49,29 +45,10 @@
   width: 640px;
   height: 400px;
   transform-origin: center bottom;
-  transition: transform 1.2s ease, filter 0.8s ease;
-  transform: scale(1);
+  // 満開発光のフェード用（transform は #57 で段階拡大しなくなったため filter のみ）。
+  transition: filter 0.8s ease;
   filter: drop-shadow(0 0 5px var(--color-canopy-glow));
   pointer-events: none;
-}
-
-// stage が上がるほど樹冠（虹色の葉）が大きく育ち、白系の発光も強まる。
-// 最初からモリモリなので拡大は控えめにし、主に発光で“成長感”を出す。
-.treeWrap[data-stage='1'] .canopy {
-  transform: scale(1.06);
-  filter: drop-shadow(0 0 7px rgba(255, 255, 255, 0.45));
-}
-.treeWrap[data-stage='2'] .canopy {
-  transform: scale(1.12);
-  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.55));
-}
-.treeWrap[data-stage='3'] .canopy {
-  transform: scale(1.18);
-  filter: drop-shadow(0 0 13px rgba(255, 255, 255, 0.65));
-}
-.treeWrap[data-stage='4'] .canopy {
-  transform: scale(1.24);
-  filter: drop-shadow(0 0 17px rgba(255, 255, 255, 0.75));
 }
 
 // 10,000人達成後の満開定着（#45）。樹冠の発光を最大化し、虹色の葉を白く強く輝かせる。

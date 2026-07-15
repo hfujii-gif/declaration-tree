@@ -374,6 +374,42 @@ export const playFullBloom = (layer: HTMLElement, tree: HTMLElement): gsap.core.
   return tl
 }
 
+// 木の成長段階（#57）の切替演出。白い発光で木を覆い（隠し）、発光ピークで見た目を差し替え（onSwap）、
+// フェードアウトして新しい段階の木を現す。到達を起こした宣言の吸収が終わってからキュー経由で再生される。
+// onSwap：ピークで呼ぶ「表示中の成長段階を進める」コールバック（page 側で state を更新→CenterTree が樹冠を作り直す）。
+export const playGrowth = (layer: HTMLElement, onSwap: () => void): gsap.core.Timeline => {
+  ensurePlugins()
+  const tl = gsap.timeline()
+  // 画面全体を覆う白い発光フラッシュ。ピークで画面を白く覆い切り、その裏で木を差し替える。
+  // 透明部分を残さない（木の位置は真っ白、周辺も薄水色の白）ため、切替の瞬間は一切見えない。
+  const flash = makeEl(
+    layer,
+    'position:absolute;inset:0;will-change:opacity;opacity:0;' +
+      'background:radial-gradient(circle at 50% 42%, #ffffff 0%, #ffffff 42%, #eafaff 100%);'
+  )
+  // 木の位置から広がる光源のにじみ（光が木から膨らむ演出）。フラッシュより一足先に立ち上げる。
+  const glow = makeEl(
+    layer,
+    `position:absolute;top:${ORIGIN_TOP}%;left:50%;width:60vmin;height:60vmin;` +
+      'border-radius:50%;filter:blur(24px);will-change:transform,opacity;' +
+      'background:radial-gradient(circle, rgba(255,255,255,0.98) 0%, rgba(224,248,255,0.85) 50%, rgba(255,255,255,0) 74%);'
+  )
+  gsap.set(glow, { xPercent: -50, yPercent: -50, scale: 0.4, opacity: 0 })
+  tl.to(glow, { opacity: 1, scale: 1.7, duration: 0.3, ease: 'power2.out' }, 0)
+    // 画面全体を白で覆い切る（ここで木が完全に隠れる）。
+    .to(flash, { opacity: 1, duration: 0.34, ease: 'power2.in' }, 0.06)
+    // 完全に覆われた状態（真っ白）で木を差し替える。
+    .add(onSwap)
+    // 白い光が引くときには、すでに次段階の木になっている。
+    .to(
+      flash,
+      { opacity: 0, duration: 0.6, ease: 'power2.out', onComplete: () => flash.remove() },
+      '+=0.08'
+    )
+    .to(glow, { opacity: 0, duration: 0.55, ease: 'power2.in', onComplete: () => glow.remove() }, '<')
+  return tl
+}
+
 // 宣言吸収演出（#44）。新着宣言1件を「中央に大きく表示→マトリックス分解→木へ吸収→木が一瞬発光」で再生する。
 // layer は Celebration レイヤー（全画面・最前面）、tree は CenterTree（内に [data-canopy] を持つ）。
 // 完走時に生成DOM・SplitText・Tween をすべて破棄する（長時間稼働のメモリリーク対策）。

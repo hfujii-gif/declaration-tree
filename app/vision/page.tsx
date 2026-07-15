@@ -2,7 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { db, ref, onValue, onChildAdded } from '@/lib/firebase'
-import { MILESTONES } from '@/lib/constants'
+import { MILESTONES, computeGrowthLevel, type GrowthLevel } from '@/lib/constants'
 import type { Declaration } from '@/types'
 import Background from '@/components/vision/Background'
 import ShootingStars from '@/components/vision/ShootingStars'
@@ -24,11 +24,10 @@ import { useCanopyLayers } from '@/components/vision/useCanopyLayers'
 import { playMilestone, playFullBloom, clearCelebrations } from '@/lib/animations'
 import styles from './page.module.scss'
 
-// URL の ?stage= をクライアントでのみ読む（リハーサル用の成長段階プレビュー）。
+// URL クエリをクライアントでのみ読むためのヘルパー（リハーサル用プレビュー ?celebrate= / ?growth=）。
 // SSR とのハイドレーション不整合を避けるため useSyncExternalStore を使う
 // （サーバーでは null、クライアントでは現在値を返し、React が安全に差し替える）。
 const subscribeStageParam = (): (() => void) => () => {}
-const getStageParam = (): string | null => new URLSearchParams(window.location.search).get('stage')
 const getServerStageParam = (): string | null => null
 
 // リハーサル用：?celebrate=2500|5000|7500|10000 で各段階の達成演出を1回だけ再生する。
@@ -36,15 +35,24 @@ const getServerStageParam = (): string | null => null
 const getCelebrateParam = (): string | null =>
   new URLSearchParams(window.location.search).get('celebrate')
 
+// リハーサル用：?growth=0|1|2 で木の成長段階（小/中/大）を上書きプレビューする（#57）。
+const getGrowthParam = (): string | null =>
+  new URLSearchParams(window.location.search).get('growth')
+
 // ペイント前に走る layout effect。SSR では警告になるためクライアントのみ useLayoutEffect を使う。
 const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect
 
 export default function VisionPage() {
   const [count, setCount] = useState(0)
-  // プレビュー用：URL の ?stage=0〜4 を読み、あれば木の成長段階をその値に上書きする（通常は累計件数から自動算出）。
-  const stageParam = useSyncExternalStore(subscribeStageParam, getStageParam, getServerStageParam)
+  // 表示中の木の成長段階（#57）。件数から算出する目標段階とは分け、宣言の吸収が終わってから
+  // キュー経由で1段階ずつ進める（発光トランジションで差し替え）。起動時は現在件数の段階を即適用する。
+  const [displayedGrowth, setDisplayedGrowth] = useState<GrowthLevel>(0)
+  // キューへ積み済みの最新の成長段階（単調増加）。二重積み・起動時の一斉発火を防ぐ。
+  const enqueuedGrowthRef = useRef<GrowthLevel>(0)
   // プレビュー用：URL の ?celebrate= を読み、あれば該当段階の達成演出を1回だけ再生する。
   const celebrateParam = useSyncExternalStore(subscribeStageParam, getCelebrateParam, getServerStageParam)
+  // プレビュー用：URL の ?growth=0|1|2 を読み、あれば木の成長段階（小/中/大）を上書きする（#57）。
+  const growthParam = useSyncExternalStore(subscribeStageParam, getGrowthParam, getServerStageParam)
   const dbRef = useRef(ref(db, 'declarations'))
   // child_added の初期バーストが終わったか。onValue の初回発火で true にする。
   const initialLoadedRef = useRef(false)
@@ -55,7 +63,7 @@ export default function VisionPage() {
   const celebrationRef = useRef<HTMLDivElement>(null)
   const treeRef = useRef<HTMLDivElement>(null)
   // 宣言の吸収・マイルストーン・満開を1本のキューで直列再生する（#49 タスクA）。
-  const { enqueueDeclaration, enqueueMilestone, enqueueBloom } = useDeclarationStream(
+  const { enqueueDeclaration, enqueueMilestone, enqueueBloom, enqueueGrowth } = useDeclarationStream(
     celebrationRef,
     treeRef
   )
@@ -106,6 +114,10 @@ export default function VisionPage() {
         // 初回は到達済みのマイルストーンを発火済みとして記録し、起動時の一斉発火を抑止する。
         if (!initialLoadedRef.current) {
           firedIndexRef.current = MILESTONES.filter((milestone) => visible >= milestone).length - 1
+          // 起動時：現在件数の成長段階を「発火済み」として即適用する（トランジションなしで正しい段階から始める）。
+          const initialGrowth = computeGrowthLevel(visible)
+          enqueuedGrowthRef.current = initialGrowth
+          setDisplayedGrowth(initialGrowth)
           initialLoadedRef.current = true
         }
       },
@@ -155,6 +167,19 @@ export default function VisionPage() {
     }
   }, [count, enqueueMilestone, enqueueBloom])
 
+  // 成長段階（#57）が上がったら、キューへ積んで宣言の吸収の後に発光トランジションで切り替える。
+  // 即座に表示段階を変えず、キュー経由（enqueueGrowth）にすることで「宣言が吸い込まれた→木が成長」の因果順にする。
+  // enqueuedGrowthRef を単調増加で管理し、初期ロード・二度積みを防ぐ。まとめて跨いだ場合は1段階ずつ積む。
+  useEffect(() => {
+    if (!initialLoadedRef.current) return
+    const target = computeGrowthLevel(count)
+    while (enqueuedGrowthRef.current < target) {
+      const next = (enqueuedGrowthRef.current + 1) as GrowthLevel
+      enqueuedGrowthRef.current = next
+      enqueueGrowth(() => setDisplayedGrowth(next))
+    }
+  }, [count, enqueueGrowth])
+
   // ?celebrate= プレビュー：指定されたマイルストーンの達成演出を1回だけ再生する（リハーサル用）。
   useEffect(() => {
     if (celebratedRef.current || celebrateParam === null) return
@@ -179,17 +204,13 @@ export default function VisionPage() {
     return () => clearCelebrations(layer, tree)
   }, [])
 
-  // 通過したマイルストーン数を成長段階（0〜4）とする。プレビュー指定(?stage=)があればそれを優先。
-  const computedStage = MILESTONES.filter((milestone) => count >= milestone).length
-  const overrideStage = stageParam !== null ? Number(stageParam) : NaN
-  const stage =
-    Number.isInteger(overrideStage) && overrideStage >= 0 && overrideStage <= MILESTONES.length
-      ? overrideStage
-      : computedStage
-  // 最終段階＝満開。?stage= プレビュー、および ?celebrate=10000 プレビューでも満開を確認できるようにする。
-  const lastMilestone = MILESTONES[MILESTONES.length - 1]
-  const bloomed =
-    stage === MILESTONES.length || (celebrateParam !== null && Number(celebrateParam) === lastMilestone)
+  // 木の成長段階（#57）。通常は表示段階（キュー経由で吸収後に進む displayedGrowth）を使う。
+  // プレビュー指定(?growth=0|1|2)があれば、それを優先してトランジションなしで即表示する（デザイン確認用）。
+  const overrideGrowth = growthParam !== null ? Number(growthParam) : NaN
+  const growthLevel: GrowthLevel =
+    Number.isInteger(overrideGrowth) && overrideGrowth >= 0 && overrideGrowth <= 2
+      ? (overrideGrowth as GrowthLevel)
+      : displayedGrowth
 
   return (
     <div className={styles.container}>
@@ -207,7 +228,9 @@ export default function VisionPage() {
       {decorations.seaTurtle && <SeaTurtle />}
       {decorations.dolphin && <Dolphin />}
       {decorations.seahorse && <Seahorse />}
-      <CenterTree ref={treeRef} stage={stage} bloomed={bloomed} layers={canopyLayers} />
+      {/* 満開の発光は playFullBloom（フィナーレ）中だけの一時的な演出にした。到達後に光り続ける
+          定着（旧 data-bloomed）は廃止したため bloomed は渡さない（通常の大の木に戻る）。 */}
+      <CenterTree ref={treeRef} growthLevel={growthLevel} layers={canopyLayers} />
       <div className={styles.counter}>{count.toLocaleString()}人が宣言しました</div>
       <Celebration ref={celebrationRef} />
     </div>

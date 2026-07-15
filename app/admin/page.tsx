@@ -129,7 +129,7 @@ export default function AdminPage() {
             className={`${styles.navItem} ${tab === 'decorations' ? styles.navItemActive : ''}`}
             onClick={() => setTab('decorations')}
           >
-            演出 ON/OFF
+            演出設定
           </button>
         </nav>
       </aside>
@@ -137,7 +137,7 @@ export default function AdminPage() {
       <main className={styles.main}>
         <div className={styles.mainHeader}>
           <h1 className={styles.pageTitle}>
-            {tab === 'declarations' ? '宣言一覧' : tab === 'ngwords' ? 'NGワード管理' : '演出 ON/OFF'}
+            {tab === 'declarations' ? '宣言一覧' : tab === 'ngwords' ? 'NGワード管理' : '演出設定'}
           </h1>
           <button type="button" className={styles.logoutButton} onClick={handleLogout}>
             ログアウト

@@ -57,13 +57,14 @@ export default function CanopyLayersManager() {
         中央の木の葉の重なり具合（{CANOPY_LAYERS_MIN}＝控えめ 〜 {CANOPY_LAYERS_MAX}＝モリモリ）。既定は{' '}
         {CANOPY_LAYERS_DEFAULT}。
       </p>
-      <div className={styles.options} role="group" aria-label="葉の重なり">
+      <div className={styles.options} role="radiogroup" aria-label="葉の重なり">
         {OPTIONS.map((value) => (
           <button
             key={value}
             type="button"
+            role="radio"
             className={`${styles.option} ${value === layers ? styles.optionActive : ''}`}
-            aria-pressed={value === layers}
+            aria-checked={value === layers}
             onClick={() => select(value)}
           >
             {value}

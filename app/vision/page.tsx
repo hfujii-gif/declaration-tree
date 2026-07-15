@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { db, ref, onValue, onChildAdded } from '@/lib/firebase'
 import { MILESTONES } from '@/lib/constants'
 import type { Declaration } from '@/types'
@@ -35,6 +35,9 @@ const getServerStageParam = (): string | null => null
 const getCelebrateParam = (): string | null =>
   new URLSearchParams(window.location.search).get('celebrate')
 
+// ペイント前に走る layout effect。SSR では警告になるためクライアントのみ useLayoutEffect を使う。
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect
+
 export default function VisionPage() {
   const [count, setCount] = useState(0)
   // プレビュー用：URL の ?stage=0〜4 を読み、あれば木の成長段階をその値に上書きする（通常は累計件数から自動算出）。
@@ -59,6 +62,25 @@ export default function VisionPage() {
   const celebratedRef = useRef(false)
   // 装飾演出（#55）の ON/OFF（管理画面 settings/decorations）。未設定は全 ON。
   const decorations = useDecorationSettings()
+
+  // 大画面ビジョン（2m×4m・横長）対応（#56）。ビューポート高さ／基準高さ1080 の「単位なしの比率」を
+  // CSS変数 --screen-scale に入れ、木・カウンター・テキストを比例拡大させる。
+  // CSS だけでは長さから単位なしの数値を作れないため JS で算出する。
+  // 初回はペイント前（layout effect）に適用し、フォールバック1→実値への切替が transition で
+  // “ポップ”して見えるのを防ぐ（高解像度出力でのロード時拡大アニメを抑止）。
+  useIsomorphicLayoutEffect(() => {
+    const BASE_HEIGHT = 1080
+    const applyScale = (): void => {
+      const scale = window.innerHeight / BASE_HEIGHT
+      document.documentElement.style.setProperty('--screen-scale', String(scale))
+    }
+    applyScale()
+    window.addEventListener('resize', applyScale)
+    return () => {
+      window.removeEventListener('resize', applyScale)
+      document.documentElement.style.removeProperty('--screen-scale')
+    }
+  }, [])
 
   useEffect(() => {
     const declarationsRef = dbRef.current

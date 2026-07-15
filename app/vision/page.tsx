@@ -20,6 +20,7 @@ import CenterTree from '@/components/vision/CenterTree'
 import Celebration from '@/components/vision/Celebration'
 import { useDeclarationStream } from '@/components/vision/useDeclarationStream'
 import { useDecorationSettings } from '@/components/vision/useDecorationSettings'
+import { useCanopyLayers } from '@/components/vision/useCanopyLayers'
 import { playMilestone, playFullBloom, clearCelebrations } from '@/lib/animations'
 import styles from './page.module.scss'
 
@@ -59,6 +60,8 @@ export default function VisionPage() {
   const celebratedRef = useRef(false)
   // 装飾演出（#55）の ON/OFF（管理画面 settings/decorations）。未設定は全 ON。
   const decorations = useDecorationSettings()
+  // 樹冠の葉の重なり密度（#60）。管理画面（settings/canopyLayers）で 1〜5。未設定は既定 3。
+  const canopyLayers = useCanopyLayers()
 
   useEffect(() => {
     const declarationsRef = dbRef.current
@@ -182,7 +185,7 @@ export default function VisionPage() {
       {decorations.seaTurtle && <SeaTurtle />}
       {decorations.dolphin && <Dolphin />}
       {decorations.seahorse && <Seahorse />}
-      <CenterTree ref={treeRef} stage={stage} bloomed={bloomed} />
+      <CenterTree ref={treeRef} stage={stage} bloomed={bloomed} layers={canopyLayers} />
       <div className={styles.counter}>{count.toLocaleString()}人が宣言しました</div>
       <Celebration ref={celebrationRef} />
     </div>

@@ -10,6 +10,9 @@ type CenterTreeProps = {
   // 10,000人達成後の満開状態。true で樹冠レインの発光が最大化する（#11/#45）。
   // 満開は count>=10000 由来の静的状態。フィナーレ演出は lib/animations.ts の playFullBloom が担当する。
   bloomed?: boolean
+  // 樹冠の葉の重なり密度＝中心部で1格子点に重ねる文字の最大枚数（#60）。管理画面から 1〜5 で変更する。
+  // 未指定時は既定の CORE_LAYERS を使う。
+  layers?: number
 }
 
 // 樹冠に流す文字はエコ語の文字（#49）。共有定数 MATRIX_GLYPHS（ひらがな・漢字）を使う。
@@ -92,7 +95,7 @@ type Cell = {
 // stage（data-stage）で樹冠が拡大、満開（data-bloomed）で発光最大化。いずれも CSS が担当する。
 // ref は演出（パルス・満開ポップ）と #44 の吸収先座標算出のため親へ公開する。
 const CenterTree = forwardRef<HTMLDivElement, CenterTreeProps>(function CenterTree(
-  { stage, bloomed = false },
+  { stage, bloomed = false, layers = CORE_LAYERS },
   ref
 ) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -145,9 +148,9 @@ const CenterTree = forwardRef<HTMLDivElement, CenterTreeProps>(function CenterTr
         const fill = smooth(depth / EDGE_SOFT) // 0(縁)→1(内側)
         // 縁（fill小）ほどまばら、内側（fill大）ほど密に配置する。
         const p = EDGE_FLOOR + (CORE_FILL - EDGE_FLOOR) * fill
-        // 重なり枚数：縁は1枚、内側ほど CORE_LAYERS 枚まで増やす。各枚を別位置にずらして文字を重ねる。
-        const layers = 1 + Math.round((CORE_LAYERS - 1) * fill)
-        for (let k = 0; k < layers; k++) {
+        // 重なり枚数：縁は1枚、内側ほど layers（管理画面の設定値）枚まで増やす。各枚を別位置にずらして文字を重ねる。
+        const cellLayers = 1 + Math.round((layers - 1) * fill)
+        for (let k = 0; k < cellLayers; k++) {
           if (Math.random() > p) continue
           // 文字位置をゆらす（縁のラインも揺らいで直線/真円っぽさが消える。重ね文字も互いにずれる）。
           const x = gx + (Math.random() - 0.5) * CELL * JITTER
@@ -320,7 +323,8 @@ const CenterTree = forwardRef<HTMLDivElement, CenterTreeProps>(function CenterTr
       canvas.removeEventListener('vision:absorb', onAbsorb)
       window.removeEventListener('resize', onResize)
     }
-  }, [])
+    // layers が変わったら葉セルを作り直す（#60）。既存 cleanup で rAF・リスナーを解除してから再生成する。
+  }, [layers])
 
   return (
     <div

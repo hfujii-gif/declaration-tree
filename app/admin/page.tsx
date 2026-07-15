@@ -4,6 +4,7 @@ import { useState, useSyncExternalStore } from 'react'
 import DeclarationList from '@/components/admin/DeclarationList'
 import NgWordManager from '@/components/admin/NgWordManager'
 import DecorationManager from '@/components/admin/DecorationManager'
+import CanopyLayersManager from '@/components/admin/CanopyLayersManager'
 import styles from './page.module.scss'
 
 // localStorage に保存する認証フラグのキー。リロード後も認証を維持するために使う。
@@ -148,7 +149,10 @@ export default function AdminPage() {
           ) : tab === 'ngwords' ? (
             <NgWordManager />
           ) : (
-            <DecorationManager />
+            <>
+              <DecorationManager />
+              <CanopyLayersManager />
+            </>
           )}
         </div>
       </main>

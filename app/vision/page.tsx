@@ -17,6 +17,7 @@ import SeaTurtle from '@/components/vision/SeaTurtle'
 import Dolphin from '@/components/vision/Dolphin'
 import Seahorse from '@/components/vision/Seahorse'
 import CenterTree from '@/components/vision/CenterTree'
+import Counter from '@/components/vision/Counter'
 import Celebration from '@/components/vision/Celebration'
 import { useDeclarationStream } from '@/components/vision/useDeclarationStream'
 import { useDecorationSettings } from '@/components/vision/useDecorationSettings'
@@ -232,7 +233,7 @@ export default function VisionPage() {
       {/* 満開の発光は playFullBloom（フィナーレ）中だけの一時的な演出にした。到達後に光り続ける
           定着（旧 data-bloomed）は廃止したため bloomed は渡さない（通常の大の木に戻る）。 */}
       <CenterTree ref={treeRef} growthLevel={growthLevel} layers={canopyLayers} />
-      <div className={styles.counter}>{count.toLocaleString()}人が宣言しました</div>
+      <Counter value={count} />
       <Celebration ref={celebrationRef} />
     </div>
   )

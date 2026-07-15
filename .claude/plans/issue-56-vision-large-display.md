@@ -45,8 +45,9 @@
 
 ### 編集するファイル
 ```
-app/vision/page.module.scss           … .container に画面追従スケール変数を定義、.counter を vh 追従に
-components/vision/CenterTree.module.scss … .treeWrap の base scale を画面追従に変更
+app/vision/page.tsx                    … --screen-scale(=innerHeight/1080) を html に設定する layout effect（resize対応・cleanup付き）
+app/vision/page.module.scss           … .counter の font-size・bottom を var(--screen-scale,1) 追従に
+components/vision/CenterTree.module.scss … .treeWrap の base scale を var(--screen-scale,1) 追従に変更（base係数1.9）
 lib/animations.ts                      … 宣言/達成テキストの clamp 上限を引き上げ
 ```
 
@@ -65,34 +66,36 @@ lib/animations.ts                      … 宣言/達成テキストの clamp �
 
 ## 実装方針
 
-### 採用する方式：ビューポート高さ基準のスケーリング（純CSS）
+### 採用する方式：ビューポート高さ基準のスケーリング（比率は JS で算出）
 
 横長（2:1）の壁では**高さが制約側**になるため、主要要素のサイズを「基準高さ」に対する
-ビューポート高さの比率で追従させる。CSSカスタムプロパティを1つ用意し、各要素はそれを掛けるだけにする。
+ビューポート高さの比率 `--screen-scale` で追従させ、各要素はそれを掛けるだけにする。
 
-```scss
-// app/vision/page.module.scss の .container に定義（子CSSモジュールにも継承される）
-.container {
-  // 基準高さ 1080px で今のデザインが成立する想定。出力解像度が上がるほど各要素も比例拡大する。
-  --screen-scale: calc(100vh / 1080);
-}
-```
+> **実装メモ（当初案からの修正）**：当初は `--screen-scale: calc(100vh / 1080)` を純CSSで置く想定だったが、
+> CSS の `calc(100vh / 1080)` は**単位なしの数値ではなく長さ（vh）**になり、`2.5rem * (vh値)` や
+> `scale(1.9 * (vh値))` といった乗算が不正になる（`scale()`/`bottom`/`font-size` が無効化される）。
+> そのため実値は **JS（`page.tsx` の layout effect）で `window.innerHeight / 1080`（単位なしの数値）を
+> `html` 要素に `setProperty('--screen-scale', ...)` する**方式に変更した。resize でも更新し、
+> クリーンアップでリスナー解除・`removeProperty` する。各使用箇所は `var(--screen-scale, 1)` とし、
+> JS 適用前・SSR 時は等倍(1)＝従来の見た目にフォールバックする。
 
-- 木：`.treeWrap { transform: translateX(-50%) scale(calc(1.05 * var(--screen-scale))); }`
-  - `transform-origin: bottom center` は維持。段階拡大（`.canopy` の scale）・パルス（`.treeInner`、GSAP）は
-    別要素なので競合せず、乗算で合成される。
+- 木：`.treeWrap { transform: translateX(-50%) scale(calc(1.9 * var(--screen-scale, 1))); }`
+  - `transform-origin: bottom center` は維持。段階拡大（`.canopy` の scale）・パルス（`[data-tree-inner]`、GSAP）は
+    別要素なので競合せず、乗算で合成される。base 係数は 1.9（1080pで画面高の約80%）。
   - canvas 吸収演出（#44）は `data-canopy` の実測 rect を使うため、CSS transform 下でも座標は正しく追従する（挙動不変）。
-- カウンター：`font-size` を `calc(2.5rem * var(--screen-scale))`（または等価な `vh` 値）に。`bottom` 等の余白も
-  必要に応じて `var(--screen-scale)` 追従にする。
+- カウンター：`font-size` と `bottom` を `calc(... * var(--screen-scale, 1))` で追従させる。
 - 宣言/達成テキスト（`lib/animations.ts`）：`clamp(下限, vmin値, 上限)` の**上限を引き上げ**て、大画面で頭打ちに
   ならないようにする。横長では `vmin == vh`（landscape では常に高さ側）なので、上の高さ基準と一貫する。
-  - 対象：`showText(...)` 呼び出し（マイルストーン=333/342/351行、満開=371行）と宣言テキスト（400〜401行付近）。
 
 ### なぜこの方式か
-- 純CSSで完結し、SSR/初期表示のちらつきが無い（JS計算・レイアウト測定を挟まない）。
 - 木・カウンター・テキストを**同じ「高さ基準」**に揃えるので、解像度が変わっても比率が一定・一貫する。
 - 2:1 の横長で木は中央に大きく収まり、左右の余白は背景（星景）とレア装飾が埋める既存構図を崩さない。
-- 変更が3ファイル・数行に収まり、イベント前でも低リスク。
+- 変更は数ファイル・数行に収まり、イベント前でも低リスク。
+
+### 初回適用のポップ対策
+- 出力が1080p以外だと、フォールバック(1)→JS実値への切替時に `.treeWrap` の `transition: transform 1.2s`
+  でロード時に木が拡大する“ポップ”が見え得る。これを防ぐため、初回適用は**ペイント前に走る layout effect**
+  （SSR警告を避けるためクライアントのみ `useLayoutEffect` を使う同型ラッパー）で行う。
 
 ### 代替案（不採用）
 - 全体を固定サイズの「デザインキャンバス」で包み `transform: scale()` で contain 表示：均一に拡大できるが、
@@ -103,10 +106,11 @@ lib/animations.ts                      … 宣言/達成テキストの clamp �
 ## 考慮が必要な点
 
 ### エラーハンドリング
-- 純CSSの見た目変更のみ。Firebase・API等のロジックには触れないため新たな例外処理は不要。
+- 見た目（CSS）＋ `--screen-scale` を設定する JS のみ。Firebase・API等のロジックには触れないため新たな例外処理は不要。
 
 ### メモリリーク対策
-- 新たな rAF・リスナー・GSAP インスタンスは追加しない（既存のクリーンアップに影響なし）。
+- `--screen-scale` 用に `window` の `resize` リスナーを1つ追加する。クリーンアップで `removeEventListener` し、
+  `--screen-scale` も `removeProperty` する。GSAP・rAF は追加しない。
 
 ### 型の定義
 - 型追加なし（`lib/animations.ts` は既存の文字列 `fontSize` 引数の値を変えるのみ）。

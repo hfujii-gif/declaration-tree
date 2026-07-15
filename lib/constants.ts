@@ -147,3 +147,10 @@ export function normalizeCanopyLayers(value: unknown): number {
   if (rounded < CANOPY_LAYERS_MIN || rounded > CANOPY_LAYERS_MAX) return CANOPY_LAYERS_DEFAULT
   return rounded
 }
+
+// /vision 下部カウンターの機械式ロール表示（#58）。最大 10,000（5桁）に合わせてゼロ埋めする桁数。
+export const COUNTER_DIGITS = 5
+// 1桁がロールしきる時間（ミリ秒）。オドメーターの回転スピード。
+export const COUNTER_ROLL_MS = 700
+// 桁ごとにロール開始をずらす時間（ミリ秒）。下位桁から上位桁へ少し遅らせて機械式の連鎖感を出す。
+export const COUNTER_ROLL_STAGGER_MS = 60

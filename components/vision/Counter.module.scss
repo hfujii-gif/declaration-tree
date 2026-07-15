@@ -1,0 +1,91 @@
+// /vision 下部の機械式オドメーター・カウンター（#58）。
+// サイズ・余白は #56 の --screen-scale に追従させ、高解像度でも同じ占有率で表示する。
+// var(--screen-scale, 1) とし、JS 適用前・SSR 時は等倍(1)にフォールバックする。
+
+// 位置決めラッパー。画面右下・最前面に置く。
+.counter {
+  position: absolute;
+  bottom: calc(48px * var(--screen-scale, 1));
+  right: calc(48px * var(--screen-scale, 1));
+  z-index: 3;
+  // 1桁分のサイズ基準。数字・セル高さ・桁幅はこの変数から算出する。全体を大きめにする。
+  --digit-font: calc(4.6rem * var(--screen-scale, 1));
+  --cell-h: calc(5.4rem * var(--screen-scale, 1));
+  --digit-w: calc(3rem * var(--screen-scale, 1));
+}
+
+// 豪華めの枠：半透明の暗いガラスパネル＋水色の発光ボーダー（既存のサイバー／発光トーンに合わせる）。
+.panel {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(1.2rem * var(--screen-scale, 1));
+  padding: calc(1rem * var(--screen-scale, 1)) calc(1.9rem * var(--screen-scale, 1));
+  border-radius: calc(22px * var(--screen-scale, 1));
+  border: calc(2.5px * var(--screen-scale, 1)) solid rgba(180, 240, 255, 0.55);
+  background: linear-gradient(rgba(6, 20, 40, 0.55), rgba(4, 12, 28, 0.68));
+  backdrop-filter: blur(6px);
+  box-shadow:
+    0 0 calc(26px * var(--screen-scale, 1)) rgba(120, 220, 255, 0.5),
+    inset 0 0 calc(28px * var(--screen-scale, 1)) rgba(80, 180, 255, 0.15);
+}
+
+// 「宣言数」ラベル。数字より控えめ・水色寄りの白でグロー。
+.label {
+  color: rgba(210, 245, 255, 0.95);
+  font-size: calc(2.2rem * var(--screen-scale, 1));
+  font-weight: bold;
+  letter-spacing: 0.14em;
+  white-space: nowrap;
+  text-shadow: 0 0 calc(10px * var(--screen-scale, 1)) rgba(90, 190, 255, 0.7);
+}
+
+// 数字（桁リール群）＋「人」の並び。
+.digits {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(0.05rem * var(--screen-scale, 1));
+}
+
+// 1桁の窓。高さ=1セル分に固定し、リールの上下移動をこの窓でクリップして1桁だけ見せる。
+.reelWindow {
+  position: relative;
+  width: var(--digit-w);
+  height: var(--cell-h);
+  overflow: hidden;
+}
+
+// 縦に30セル（0〜9 ×3ブロック）並べたリール。GSAP が yPercent で上下に動かす。
+// 高さは各セルの合計（=30×--cell-h）。yPercent はこのリール高さ基準なので、1セル=100/30% で正確に1桁ずれる。
+.reel {
+  display: flex;
+  flex-direction: column;
+  will-change: transform;
+}
+
+// リールの1セル（1つの数字）。窓と同じ高さにし、数字を中央寄せする。
+.cell {
+  height: var(--cell-h);
+  line-height: var(--cell-h);
+  text-align: center;
+  color: #ffffff;
+  font-size: var(--digit-font);
+  font-weight: bold;
+  // 等幅数字でゼロ埋めの桁が揺れないようにする。
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+  text-shadow:
+    0 0 calc(4px * var(--screen-scale, 1)) rgba(0, 50, 90, 0.9),
+    0 0 calc(12px * var(--screen-scale, 1)) rgba(0, 70, 120, 0.7),
+    0 2px calc(6px * var(--screen-scale, 1)) rgba(0, 20, 45, 0.55);
+}
+
+// 「人」。数字と同じトーンでやや小さめ。
+.unit {
+  margin-left: calc(0.5rem * var(--screen-scale, 1));
+  color: #ffffff;
+  font-size: calc(3rem * var(--screen-scale, 1));
+  font-weight: bold;
+  text-shadow:
+    0 0 calc(4px * var(--screen-scale, 1)) rgba(0, 50, 90, 0.9),
+    0 2px calc(6px * var(--screen-scale, 1)) rgba(0, 20, 45, 0.55);
+}

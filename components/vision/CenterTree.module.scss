@@ -9,9 +9,10 @@
   // 段階成長を滑らかに見せる。
   transition: transform 1.2s ease;
   // 木全体のサイズは一定にし、stage による成長はキャノピー（.canopy）の拡大で表現する。
-  // base 係数 1.05 に画面追従スケール（#56：--screen-scale＝100vh/1080）を掛け、高解像度でも
-  // 木が小さく映らないようにする。段階拡大（.canopy）・パルス（.treeInner/GSAP）は別要素なので競合しない。
-  transform: translateX(-50%) scale(calc(1.05 * var(--screen-scale, 1)));
+  // base 係数（大画面ビジョンで木を大きく見せるためのサイズ。1.9＝1080pで画面高の約80%）に
+  // 画面追従スケール（#56：--screen-scale＝innerHeight/1080）を掛け、高解像度でも木が小さく映らないようにする。
+  // ※このbase係数が木全体の見た目サイズの調整ダイヤル。段階拡大（.canopy）・パルス（.treeInner/GSAP）は別要素で非競合。
+  transform: translateX(-50%) scale(calc(1.9 * var(--screen-scale, 1)));
 }
 
 // 木の内側ラッパー。マイルストーンのパルス（pulseTree）はこの要素を拡大→戻すため、

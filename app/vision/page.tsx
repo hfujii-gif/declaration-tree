@@ -60,6 +60,23 @@ export default function VisionPage() {
   // 装飾演出（#55）の ON/OFF（管理画面 settings/decorations）。未設定は全 ON。
   const decorations = useDecorationSettings()
 
+  // 大画面ビジョン（2m×4m・横長）対応（#56）。ビューポート高さ／基準高さ1080 の「単位なしの比率」を
+  // CSS変数 --screen-scale に入れ、木・カウンター・テキストを比例拡大させる。
+  // CSS だけでは長さから単位なしの数値を作れないため JS で算出する。
+  useEffect(() => {
+    const BASE_HEIGHT = 1080
+    const applyScale = (): void => {
+      const scale = window.innerHeight / BASE_HEIGHT
+      document.documentElement.style.setProperty('--screen-scale', String(scale))
+    }
+    applyScale()
+    window.addEventListener('resize', applyScale)
+    return () => {
+      window.removeEventListener('resize', applyScale)
+      document.documentElement.style.removeProperty('--screen-scale')
+    }
+  }, [])
+
   useEffect(() => {
     const declarationsRef = dbRef.current
 

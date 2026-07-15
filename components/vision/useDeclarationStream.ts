@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react'
 import type { RefObject } from 'react'
-import { playDeclaration, playMilestone, playFullBloom } from '@/lib/animations'
+import { playDeclaration, playMilestone, playFullBloom, playGrowth } from '@/lib/animations'
 import {
   DECLARATION_GAP_MS,
   DECLARATION_MAX_QUEUE,
@@ -17,12 +17,15 @@ type VisionJob =
   | { type: 'declaration'; text: string }
   | { type: 'milestone'; stage: number; count: number }
   | { type: 'bloom' }
+  // 成長段階の切替（#57）。apply はピークで表示段階を進めるコールバック（page 側の state 更新）。
+  | { type: 'growth'; apply: () => void }
 
 // 戻り値：演出ジョブをキューに積む関数群。
 type DeclarationStream = {
   enqueueDeclaration: (text: string) => void
   enqueueMilestone: (stage: number, count: number) => void
   enqueueBloom: () => void
+  enqueueGrowth: (apply: () => void) => void
 }
 
 // /vision の演出キュー管理フック（旧 useTransientLeaves の置き換え）。
@@ -71,6 +74,8 @@ export function useDeclarationStream(
       tl = playDeclaration(job.text, layer, tree, opts)
     } else if (job.type === 'milestone') {
       tl = playMilestone(job.stage, job.count, layer, tree)
+    } else if (job.type === 'growth') {
+      tl = playGrowth(layer, job.apply)
     } else {
       tl = playFullBloom(layer, tree)
     }
@@ -129,6 +134,13 @@ export function useDeclarationStream(
     drainRef.current()
   }, [])
 
+  // 成長段階の切替（#57）。宣言・マイルストーンと同じ上限対象外で取りこぼさない。
+  const enqueueGrowth = useCallback((apply: () => void): void => {
+    if (unmountedRef.current) return
+    queueRef.current.push({ type: 'growth', apply })
+    drainRef.current()
+  }, [])
+
   // アンマウント時：進行中タイムラインを kill し、キューを空にする（長時間稼働のメモリリーク対策）。
   useEffect(() => {
     unmountedRef.current = false
@@ -147,5 +159,5 @@ export function useDeclarationStream(
     }
   }, [])
 
-  return { enqueueDeclaration, enqueueMilestone, enqueueBloom }
+  return { enqueueDeclaration, enqueueMilestone, enqueueBloom, enqueueGrowth }
 }

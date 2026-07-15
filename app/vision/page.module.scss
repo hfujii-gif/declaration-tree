@@ -7,15 +7,22 @@
   overflow: hidden;
 }
 
+// 大画面ビジョン（2m×4m・横長2:1）対応（#56）。横長では高さが制約側になるため、主要要素を
+// 「基準高さ 1080px」に対するビューポート高さの比率 --screen-scale で追従拡大させる。
+// 実値は page.tsx が JS で html 要素に window.innerHeight/1080（単位なしの数値）を設定する。
+// 各使用箇所は var(--screen-scale, 1) とし、JS 適用前・SSR 時は等倍(1)＝従来の見た目にフォールバックする。
+// （.container 側で定義すると JS が html に入れた値を上書きしてしまうため、ここでは定義しない）
+
 // 画面下部に常時表示する累計カウンター。最前面に置く。
 .counter {
   position: absolute;
-  bottom: 40px;
+  // 余白・文字サイズを画面追従させ、高解像度でも同じ占有率で表示する（#56）。
+  bottom: calc(40px * var(--screen-scale, 1));
   left: 50%;
   transform: translateX(-50%);
   z-index: 3;
   color: var(--color-text);
-  font-size: 2.5rem;
+  font-size: calc(2.5rem * var(--screen-scale, 1));
   font-weight: bold;
   text-align: center;
   white-space: nowrap;

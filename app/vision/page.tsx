@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react'
-import { db, ref, onValue, onChildAdded, set } from '@/lib/firebase'
+import { db, ref, onValue, onChildAdded, set, serverTimestamp } from '@/lib/firebase'
 import { MILESTONES, computeGrowthLevel, VISION_TELEMETRY_INTERVAL_MS, type GrowthLevel } from '@/lib/constants'
 import type { Declaration, VisionStatus } from '@/types'
 import Background from '@/components/vision/Background'
@@ -244,17 +244,22 @@ export default function VisionPage() {
   useEffect(() => {
     const statusRef = ref(db, 'settings/visionStatus')
     let prevAnimated = getStats().animatedTotal
+    let prevAt = Date.now()
     const write = async (): Promise<void> => {
       const stats = getStats()
-      // ローリングのスループット（件/分）：前回書き込みからの吸収完了差分を分あたりに換算。
-      const throughputPerMin = Math.round(
-        (stats.animatedTotal - prevAnimated) / (VISION_TELEMETRY_INTERVAL_MS / 60000)
-      )
+      const nowMs = Date.now()
+      const elapsed = nowMs - prevAt
+      // ローリングのスループット（件/分）：吸収完了差分を「実経過時間」で割る。
+      // setInterval は負荷・非アクティブで遅延・間引きされるため、公称間隔で割ると過大に出る（#70 レビュー対応）。
+      const throughputPerMin =
+        elapsed > 0 ? Math.round((stats.animatedTotal - prevAnimated) / (elapsed / 60000)) : 0
       prevAnimated = stats.animatedTotal
+      prevAt = nowMs
       const target = countTargetRef.current
       const displayed = displayedCountRef.current
-      const status: VisionStatus = {
-        updatedAt: Date.now(),
+      // updatedAt はサーバー時刻（serverTimestamp）で書く。管理画面が /.info/serverTimeOffset で
+      // クロック差を補正し、値の実年齢で接続判定できるようにするため（残留ノードの誤「稼働中」を防ぐ・#70 レビュー対応）。
+      const status: Omit<VisionStatus, 'updatedAt'> = {
         queueLength: stats.queueLength,
         receivedTotal: receivedTotalRef.current,
         animatedTotal: stats.animatedTotal,
@@ -266,7 +271,7 @@ export default function VisionPage() {
         growthLevel: growthLevelRef.current,
       }
       try {
-        await set(statusRef, status)
+        await set(statusRef, { ...status, updatedAt: serverTimestamp() })
       } catch (e) {
         console.error('モニタリング状態の書き込みに失敗しました:', e)
       }

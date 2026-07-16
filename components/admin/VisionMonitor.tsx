@@ -1,39 +1,35 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { db, ref, onValue } from '@/lib/firebase'
 import { VISION_OFFLINE_THRESHOLD_MS } from '@/lib/constants'
 import type { VisionStatus } from '@/types'
 import styles from './VisionMonitor.module.scss'
 
 // /vision の稼働状況モニタリング（#70）。/vision が settings/visionStatus に定期書き込みする状態を購読して表示する。
-// 接続判定は「新しい updatedAt を最後に受信した管理画面ローカル時刻」で行い、クロック差の影響を受けないようにする。
+// 接続判定は updatedAt（サーバー時刻）の「実年齢」で行う。クロック差は /.info/serverTimeOffset で補正するため、
+// 管理画面ローカルの時計がずれていても正しく判定でき、古い残留ノードを「稼働中」と誤表示しない（#70 レビュー対応）。
 const GROWTH_LABEL = ['小', '中', '大'] as const
 
 export default function VisionMonitor() {
   const [status, setStatus] = useState<VisionStatus | null>(null)
   const [error, setError] = useState('')
-  // 最後に新しい updatedAt を受信した管理画面ローカル時刻（state にして render で安全に読む）。
-  const [lastReceivedAt, setLastReceivedAt] = useState(0)
-  // 毎秒更新する現在時刻。オフライン判定・相対時刻の再描画に使う（初期0でハイドレーション不整合を避ける）。
+  // 毎秒更新する現在時刻。実年齢の再計算・相対時刻の再描画に使う（初期0でハイドレーション不整合を避ける）。
   const [now, setNow] = useState(0)
-  // 直近に反映済みの updatedAt（コールバック内のみで参照）。
-  const lastUpdatedAtRef = useRef(0)
+  // サーバー時刻との差分（serverTime = clientTime + offset）。クロック差の補正に使う。
+  const [serverOffset, setServerOffset] = useState(0)
 
   useEffect(() => {
     const statusRef = ref(db, 'settings/visionStatus')
-    const unsubscribe = onValue(
+    const offsetRef = ref(db, '.info/serverTimeOffset')
+    const unsubscribeStatus = onValue(
       statusRef,
       (snapshot) => {
         const val = snapshot.val() as VisionStatus | null
         if (val && typeof val.updatedAt === 'number') {
           setStatus(val)
           setError('')
-          // updatedAt が進んだときだけ「受信した」とみなす（同値の再通知では接続を延命しない）。
-          if (val.updatedAt !== lastUpdatedAtRef.current) {
-            lastUpdatedAtRef.current = val.updatedAt
-            setLastReceivedAt(Date.now())
-          }
+          setNow(Date.now()) // 受信時点で now を更新し、待たずに実年齢を評価できるようにする。
         }
       },
       (e) => {
@@ -41,18 +37,24 @@ export default function VisionMonitor() {
         setError('モニタリング情報の取得に失敗しました。')
       }
     )
-    // 毎秒 now を更新（オフライン判定・相対時刻の再描画のため）。初回tickは1秒後。
+    const unsubscribeOffset = onValue(offsetRef, (snapshot) => {
+      const v = snapshot.val()
+      setServerOffset(typeof v === 'number' ? v : 0)
+    })
+    // 毎秒 now を更新（実年齢での接続判定・相対時刻の再描画のため）。初回tickは1秒後。
     const timer = setInterval(() => setNow(Date.now()), 1000)
 
     return () => {
-      unsubscribe()
+      unsubscribeStatus()
+      unsubscribeOffset()
       clearInterval(timer)
     }
   }, [])
 
-  // 接続状況・相対時刻は state のみから導出する（ref を render で読まない）。
-  const online = lastReceivedAt > 0 && now - lastReceivedAt <= VISION_OFFLINE_THRESHOLD_MS
-  const secondsAgo = lastReceivedAt > 0 ? Math.max(0, Math.floor((now - lastReceivedAt) / 1000)) : null
+  // updatedAt（サーバー時刻）の実年齢で判定する。now===0（初回描画）では判定せず「未接続」側へ倒す。
+  const ageMs = status !== null && now > 0 ? now + serverOffset - status.updatedAt : Infinity
+  const online = status !== null && now > 0 && ageMs <= VISION_OFFLINE_THRESHOLD_MS
+  const secondsAgo = status !== null && now > 0 ? Math.max(0, Math.floor(ageMs / 1000)) : null
 
   const tile = (label: string, value: string | number, tone?: 'warn' | 'error') => (
     <div className={styles.tile}>

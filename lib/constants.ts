@@ -51,7 +51,7 @@ export const DECLARATION_ABSORB_MS = 2800
 // 立て続けに流れず、1件ずつ落ち着いて見えるようにする。
 export const DECLARATION_GAP_MS = 1500
 
-// 同時バースト時（iPad 25台同時送信など）に貯められる演出キューの上限。
+// 同時バースト時（iPad 10台同時送信など）に貯められる演出キューの上限。
 // スポットライトは同時に1つだけ再生し、超過分は捨てる（無音で打ち切らず console.warn で可視化する）。
 export const DECLARATION_MAX_QUEUE = 12
 

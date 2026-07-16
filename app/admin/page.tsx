@@ -5,6 +5,7 @@ import DeclarationList from '@/components/admin/DeclarationList'
 import NgWordManager from '@/components/admin/NgWordManager'
 import DecorationManager from '@/components/admin/DecorationManager'
 import CanopyLayersManager from '@/components/admin/CanopyLayersManager'
+import QrCodeManager from '@/components/admin/QrCodeManager'
 import styles from './page.module.scss'
 
 // localStorage に保存する認証フラグのキー。リロード後も認証を維持するために使う。
@@ -28,7 +29,7 @@ export default function AdminPage() {
   const [isLoggingIn, setIsLoggingIn] = useState(false)
   const [error, setError] = useState('')
   // 左サイドバーで切り替える表示タブ。
-  const [tab, setTab] = useState<'declarations' | 'ngwords' | 'decorations'>('declarations')
+  const [tab, setTab] = useState<'declarations' | 'ngwords' | 'decorations' | 'qrcode'>('declarations')
   // サイドバーの開閉状態。
   const [sidebarOpen, setSidebarOpen] = useState(true)
 
@@ -131,13 +132,26 @@ export default function AdminPage() {
           >
             演出設定
           </button>
+          <button
+            type="button"
+            className={`${styles.navItem} ${tab === 'qrcode' ? styles.navItemActive : ''}`}
+            onClick={() => setTab('qrcode')}
+          >
+            QRコード
+          </button>
         </nav>
       </aside>
 
       <main className={styles.main}>
         <div className={styles.mainHeader}>
           <h1 className={styles.pageTitle}>
-            {tab === 'declarations' ? '宣言一覧' : tab === 'ngwords' ? 'NGワード管理' : '演出設定'}
+            {tab === 'declarations'
+              ? '宣言一覧'
+              : tab === 'ngwords'
+                ? 'NGワード管理'
+                : tab === 'decorations'
+                  ? '演出設定'
+                  : 'QRコード'}
           </h1>
           <button type="button" className={styles.logoutButton} onClick={handleLogout}>
             ログアウト
@@ -148,11 +162,13 @@ export default function AdminPage() {
             <DeclarationList />
           ) : tab === 'ngwords' ? (
             <NgWordManager />
-          ) : (
+          ) : tab === 'decorations' ? (
             <>
               <DecorationManager />
               <CanopyLayersManager />
             </>
+          ) : (
+            <QrCodeManager />
           )}
         </div>
       </main>

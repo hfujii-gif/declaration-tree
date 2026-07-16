@@ -66,7 +66,6 @@ export default function DeclarationsPerHour() {
   const baseY = PAD_T + plotH
   const slot = plotW / bars.length || plotW
   const barW = slot * 0.68
-  const maxIndex = bars.findIndex((b) => b.count === maxCount)
 
   return (
     <div className={styles.wrap}>
@@ -105,11 +104,6 @@ export default function DeclarationsPerHour() {
                 <rect x={x} y={y} width={barW} height={barH} rx={Math.min(3, barW / 2)} className={styles.bar}>
                   <title>{`${hour}時台 ${b.count}件`}</title>
                 </rect>
-                {i === maxIndex && b.count > 0 && (
-                  <text x={x + barW / 2} y={y - 5} className={styles.barLabel}>
-                    {b.count}
-                  </text>
-                )}
                 {showXLabel && (
                   <text x={x + barW / 2} y={H - 10} className={styles.xtick}>
                     {hour}時

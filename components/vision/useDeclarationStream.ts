@@ -22,6 +22,9 @@ type VisionJob =
   // 成長段階の切替（#57）。apply はピークで表示段階を進めるコールバック（page 側の state 更新）。
   | { type: 'growth'; apply: () => void }
 
+// モニタリング用の演出キュー統計（#70）。
+type StreamStats = { queueLength: number; animatedTotal: number; droppedTotal: number }
+
 // 戻り値：演出ジョブをキューに積む関数群。
 type DeclarationStream = {
   // enqueueDeclaration は「積めたか」を返す（上限超過ドロップ時 false）。呼び出し側が吸収待ち件数を数えるため。
@@ -29,6 +32,8 @@ type DeclarationStream = {
   enqueueMilestone: (stage: number, count: number) => void
   enqueueBloom: () => void
   enqueueGrowth: (apply: () => void) => void
+  // 現在のキュー滞留数・吸収完了累計・ドロップ累計を返す（#70 モニタリング）。
+  getStats: () => StreamStats
 }
 
 // /vision の演出キュー管理フック（旧 useTransientLeaves の置き換え）。
@@ -51,6 +56,9 @@ export function useDeclarationStream(
   const unmountedRef = useRef(false)
   // 演出完了時の再帰呼び出しを ref 経由にして、drain の自己参照を避ける。
   const drainRef = useRef<() => void>(() => {})
+  // モニタリング統計（#70）：吸収完了・ドロップの累計。
+  const animatedTotalRef = useRef(0)
+  const droppedTotalRef = useRef(0)
 
   const drain = useCallback((): void => {
     // 再生中／“間”の待機中／アンマウント後は何もしない。
@@ -91,8 +99,10 @@ export function useDeclarationStream(
       // 宣言の吸収が終わった瞬間にカウンターを1件進める（#67）。
       // drained（残りキューに宣言ジョブが無い＝宣言バーストの末尾）を渡し、page 側で取りこぼし分を実数へスナップできるようにする。
       // growth/milestone/bloom ジョブは対象外にする（宣言Aの再生中に growth が積まれても A を末尾扱いにするため）。
-      if (job.type === 'declaration')
+      if (job.type === 'declaration') {
+        animatedTotalRef.current++ // 吸収完了累計（#70 モニタリング）
         job.onAbsorbed?.(queueRef.current.every((j) => j.type !== 'declaration'))
+      }
       const next = queueRef.current[0]
       if (next === undefined) return // 次が無ければ待機（新着が来たら即時再生）。
       // 宣言→宣言は通常の“間”。マイルストーン/満開が絡む境目は短い間で詰めて因果を密に見せる。
@@ -122,6 +132,7 @@ export function useDeclarationStream(
       if (unmountedRef.current) return false
       // 上限超過は捨てる（無音で打ち切らず可視化する）。マイルストーン/満開はこの上限の対象外（取りこぼさない）。
       if (queueRef.current.length >= DECLARATION_MAX_QUEUE) {
+        droppedTotalRef.current++ // ドロップ累計（#70 モニタリング。#69 で解消予定）
         console.warn(
           `[vision] 宣言演出キューが上限(${DECLARATION_MAX_QUEUE})に達したため1件スキップしました`
         )
@@ -153,6 +164,16 @@ export function useDeclarationStream(
     drainRef.current()
   }, [])
 
+  // 現在の統計スナップショット（#70 モニタリング）。ref 参照のみで安定。
+  const getStats = useCallback(
+    (): StreamStats => ({
+      queueLength: queueRef.current.length,
+      animatedTotal: animatedTotalRef.current,
+      droppedTotal: droppedTotalRef.current,
+    }),
+    []
+  )
+
   // アンマウント時：進行中タイムラインを kill し、キューを空にする（長時間稼働のメモリリーク対策）。
   useEffect(() => {
     unmountedRef.current = false
@@ -171,5 +192,5 @@ export function useDeclarationStream(
     }
   }, [])
 
-  return { enqueueDeclaration, enqueueMilestone, enqueueBloom, enqueueGrowth }
+  return { enqueueDeclaration, enqueueMilestone, enqueueBloom, enqueueGrowth, getStats }
 }

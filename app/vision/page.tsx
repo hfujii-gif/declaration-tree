@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react'
-import { db, ref, onValue, onChildAdded } from '@/lib/firebase'
-import { MILESTONES, computeGrowthLevel, type GrowthLevel } from '@/lib/constants'
-import type { Declaration } from '@/types'
+import { db, ref, onValue, onChildAdded, set, serverTimestamp } from '@/lib/firebase'
+import { MILESTONES, computeGrowthLevel, VISION_TELEMETRY_INTERVAL_MS, type GrowthLevel } from '@/lib/constants'
+import type { Declaration, VisionStatus } from '@/types'
 import Background from '@/components/vision/Background'
 import ShootingStars from '@/components/vision/ShootingStars'
 import Saturn from '@/components/vision/Saturn'
@@ -72,10 +72,12 @@ export default function VisionPage() {
   const celebrationRef = useRef<HTMLDivElement>(null)
   const treeRef = useRef<HTMLDivElement>(null)
   // 宣言の吸収・マイルストーン・満開を1本のキューで直列再生する（#49 タスクA）。
-  const { enqueueDeclaration, enqueueMilestone, enqueueBloom, enqueueGrowth } = useDeclarationStream(
-    celebrationRef,
-    treeRef
-  )
+  const { enqueueDeclaration, enqueueMilestone, enqueueBloom, enqueueGrowth, getStats } =
+    useDeclarationStream(celebrationRef, treeRef)
+  // モニタリング（#70）：onChildAdded 受信累計と、interval から最新値を読むためのミラー ref。
+  const receivedTotalRef = useRef(0)
+  const displayedCountRef = useRef(0)
+  const growthLevelRef = useRef<GrowthLevel>(0)
   // ?celebrate= プレビューの二度焚き防止。
   const celebratedRef = useRef(false)
   // 装飾演出（#55）の ON/OFF（管理画面 settings/decorations）。未設定は全 ON。
@@ -151,6 +153,7 @@ export default function VisionPage() {
         if (!initialLoadedRef.current) return
         const d = snapshot.val() as Omit<Declaration, 'id'> | null
         if (d && d.isVisible && typeof d.text === 'string') {
+          receivedTotalRef.current++ // 受信累計（#70 モニタリング）
           // 吸収完了ごとにカウンターを1件進める（#67）。目標件数を超えないようクランプし、
           // drained（宣言バーストの末尾）ではドロップ分も含め実数へスナップして最終値を必ず一致させる。
           const enqueued = enqueueDeclaration(d.text, (drained) => {
@@ -231,6 +234,52 @@ export default function VisionPage() {
     return () => clearCelebrations(layer, tree)
   }, [])
 
+  // モニタリング（#70）：state を interval 内で最新参照するためのミラー。
+  useEffect(() => {
+    displayedCountRef.current = displayedCount
+  }, [displayedCount])
+
+  // モニタリング（#70）：/vision の稼働状況を settings/visionStatus に定期書き込みする。
+  // 管理画面がこれを購読してキュー滞留・スループット・接続状況を表示する。
+  useEffect(() => {
+    const statusRef = ref(db, 'settings/visionStatus')
+    let prevAnimated = getStats().animatedTotal
+    let prevAt = Date.now()
+    const write = async (): Promise<void> => {
+      const stats = getStats()
+      const nowMs = Date.now()
+      const elapsed = nowMs - prevAt
+      // ローリングのスループット（件/分）：吸収完了差分を「実経過時間」で割る。
+      // setInterval は負荷・非アクティブで遅延・間引きされるため、公称間隔で割ると過大に出る（#70 レビュー対応）。
+      const throughputPerMin =
+        elapsed > 0 ? Math.round((stats.animatedTotal - prevAnimated) / (elapsed / 60000)) : 0
+      prevAnimated = stats.animatedTotal
+      prevAt = nowMs
+      const target = countTargetRef.current
+      const displayed = displayedCountRef.current
+      // updatedAt はサーバー時刻（serverTimestamp）で書く。管理画面が /.info/serverTimeOffset で
+      // クロック差を補正し、値の実年齢で接続判定できるようにするため（残留ノードの誤「稼働中」を防ぐ・#70 レビュー対応）。
+      const status: Omit<VisionStatus, 'updatedAt'> = {
+        queueLength: stats.queueLength,
+        receivedTotal: receivedTotalRef.current,
+        animatedTotal: stats.animatedTotal,
+        droppedTotal: stats.droppedTotal,
+        displayedCount: displayed,
+        targetCount: target,
+        lag: Math.max(0, target - displayed),
+        throughputPerMin,
+        growthLevel: growthLevelRef.current,
+      }
+      try {
+        await set(statusRef, { ...status, updatedAt: serverTimestamp() })
+      } catch (e) {
+        console.error('モニタリング状態の書き込みに失敗しました:', e)
+      }
+    }
+    const id = setInterval(write, VISION_TELEMETRY_INTERVAL_MS)
+    return () => clearInterval(id)
+  }, [getStats])
+
   // 木の成長段階（#57）。通常は表示段階（キュー経由で吸収後に進む displayedGrowth）を使う。
   // プレビュー指定(?growth=0|1|2)があれば、それを優先してトランジションなしで即表示する（デザイン確認用）。
   const overrideGrowth = growthParam !== null ? Number(growthParam) : NaN
@@ -238,6 +287,11 @@ export default function VisionPage() {
     Number.isInteger(overrideGrowth) && overrideGrowth >= 0 && overrideGrowth <= 2
       ? (overrideGrowth as GrowthLevel)
       : displayedGrowth
+
+  // モニタリング（#70）：growthLevel を interval 内で最新参照するためのミラー。
+  useEffect(() => {
+    growthLevelRef.current = growthLevel
+  }, [growthLevel])
 
   return (
     <div className={styles.container}>

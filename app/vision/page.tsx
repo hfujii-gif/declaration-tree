@@ -45,6 +45,14 @@ const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffec
 
 export default function VisionPage() {
   const [count, setCount] = useState(0)
+  // カウンターの表示値（#67）。目標値 count とは分け、宣言の吸収が終わるたびに1件ずつ進める。
+  // これで「テキスト→木へ吸収→カウンターが増える」の因果が揃い、連続送信時の先走りを防ぐ。
+  const [displayedCount, setDisplayedCount] = useState(0)
+  // 最新の目標件数（onValue の isVisible 件数）。吸収完了コールバック内で上限クランプ・スナップに使う。
+  const countTargetRef = useRef(0)
+  // 吸収待ちの宣言数（キュー投入〜吸収完了）。0 のあいだは演出が進行していないので目標値へ即追従してよい（#67）。
+  // これで child_added を伴わない増加（管理画面の「再表示」＝child_changed）にもカウンターが追従する。
+  const pendingAbsorbRef = useRef(0)
   // 表示中の木の成長段階（#57）。件数から算出する目標段階とは分け、宣言の吸収が終わってから
   // キュー経由で1段階ずつ進める（発光トランジションで差し替え）。起動時は現在件数の段階を即適用する。
   const [displayedGrowth, setDisplayedGrowth] = useState<GrowthLevel>(0)
@@ -110,6 +118,7 @@ export default function VisionPage() {
             if (d.isVisible && typeof d.text === 'string') visible++
           }
         }
+        countTargetRef.current = visible
         setCount(visible)
         // child_added の初期発火がすべて終わった後に value が初回発火する Firebase の保証を利用する。
         // 初回は到達済みのマイルストーンを発火済みとして記録し、起動時の一斉発火を抑止する。
@@ -119,7 +128,14 @@ export default function VisionPage() {
           const initialGrowth = computeGrowthLevel(visible)
           enqueuedGrowthRef.current = initialGrowth
           setDisplayedGrowth(initialGrowth)
+          // カウンターも起動時は現在件数へ即スナップ（既存分を1件ずつ演出しない・#67）。
+          setDisplayedCount(visible)
           initialLoadedRef.current = true
+        } else {
+          // 吸収待ちが無いときは目標値へ即追従する（#67）。
+          // 非表示化＝減少・再表示（child_changed で child_added が来ない）＝増加のどちらも「吸収」の対象外のため即反映。
+          // 吸収待ちがあるあいだは増加を吸収完了コールバック側に任せ、減少のみ即クランプする。
+          setDisplayedCount((dc) => (pendingAbsorbRef.current === 0 ? visible : Math.min(dc, visible)))
         }
       },
       (error) => {
@@ -135,7 +151,16 @@ export default function VisionPage() {
         if (!initialLoadedRef.current) return
         const d = snapshot.val() as Omit<Declaration, 'id'> | null
         if (d && d.isVisible && typeof d.text === 'string') {
-          enqueueDeclaration(d.text)
+          // 吸収完了ごとにカウンターを1件進める（#67）。目標件数を超えないようクランプし、
+          // drained（宣言バーストの末尾）ではドロップ分も含め実数へスナップして最終値を必ず一致させる。
+          const enqueued = enqueueDeclaration(d.text, (drained) => {
+            pendingAbsorbRef.current = drained ? 0 : Math.max(0, pendingAbsorbRef.current - 1)
+            setDisplayedCount((dc) =>
+              drained ? countTargetRef.current : Math.min(dc + 1, countTargetRef.current)
+            )
+          })
+          // 実際に積めた分だけ吸収待ちを数える（上限超過ドロップは onAbsorbed が呼ばれないため加算しない）。
+          if (enqueued) pendingAbsorbRef.current++
         }
       },
       (error) => {
@@ -233,7 +258,7 @@ export default function VisionPage() {
       {/* 満開の発光は playFullBloom（フィナーレ）中だけの一時的な演出にした。到達後に光り続ける
           定着（旧 data-bloomed）は廃止したため bloomed は渡さない（通常の大の木に戻る）。 */}
       <CenterTree ref={treeRef} growthLevel={growthLevel} layers={canopyLayers} />
-      <Counter value={count} />
+      <Counter value={displayedCount} />
       <Celebration ref={celebrationRef} />
     </div>
   )

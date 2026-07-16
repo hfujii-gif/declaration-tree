@@ -154,3 +154,8 @@ export const COUNTER_DIGITS = 5
 export const COUNTER_ROLL_MS = 700
 // 桁ごとにロール開始をずらす時間（ミリ秒）。下位桁から上位桁へ少し遅らせて機械式の連鎖感を出す。
 export const COUNTER_ROLL_STAGGER_MS = 60
+
+// /vision → /admin モニタリング（#70）。/vision が自分の状態を Firebase に書き込む間隔（ミリ秒）。
+export const VISION_TELEMETRY_INTERVAL_MS = 2000
+// 管理画面がオフライン判定するまでの「更新が来ない時間」（ミリ秒）。書き込み間隔の数倍に取る。
+export const VISION_OFFLINE_THRESHOLD_MS = 8000

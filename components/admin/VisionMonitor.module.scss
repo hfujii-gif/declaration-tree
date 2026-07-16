@@ -1,0 +1,100 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.errorMsg {
+  color: var(--color-error);
+  font-size: 0.9rem;
+}
+
+.subLabel {
+  font-size: 0.85rem;
+  color: var(--color-admin-muted);
+}
+
+// 接続状況バナー。
+.status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+  border: 1px solid var(--color-admin-border);
+  border-radius: 10px;
+  background-color: #ffffff;
+}
+
+.dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.statusOnline .dot {
+  background-color: #1a9f60;
+  box-shadow: 0 0 0 4px rgba(26, 159, 96, 0.15);
+}
+
+.statusOffline .dot {
+  background-color: #b0b6bd;
+  box-shadow: 0 0 0 4px rgba(176, 182, 189, 0.15);
+}
+
+.statusText {
+  font-size: 1rem;
+  font-weight: bold;
+  color: var(--color-admin-text);
+}
+
+.statusOffline .statusText {
+  color: var(--color-admin-muted);
+}
+
+.statusSub {
+  margin-left: auto;
+  font-size: 0.8rem;
+  color: var(--color-admin-muted);
+}
+
+// 指標タイル。
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.tile {
+  padding: 12px 14px;
+  border: 1px solid var(--color-admin-border);
+  border-radius: 10px;
+  background-color: #ffffff;
+}
+
+.tileLabel {
+  font-size: 0.72rem;
+  color: var(--color-admin-muted);
+  letter-spacing: 0.02em;
+}
+
+.tileValue {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: var(--color-admin-text);
+  margin-top: 2px;
+}
+
+.tileValue.warn {
+  color: #b26a00;
+}
+
+.tileValue.error {
+  color: var(--color-error);
+}
+
+.note {
+  font-size: 0.8rem;
+  color: var(--color-admin-muted);
+  line-height: 1.6;
+}

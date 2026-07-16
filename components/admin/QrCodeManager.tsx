@@ -12,6 +12,8 @@ import styles from './QrCodeManager.module.scss'
 const SELECTION_PATH = '/'
 // 印刷・スキャンに耐える解像度で生成する（CSS で表示サイズは調整）。
 const QR_PIXEL_SIZE = 512
+// 「コピーしました」表示を元に戻すまでの時間（ミリ秒）。
+const COPIED_RESET_MS = 2000
 
 // origin はブラウザでのみ確定するため、ハイドレーション安全に読む（/admin の認証フラグと同じ方針）。
 // サーバーでは空文字、クライアントでのみ window を参照し、React が安全に差し替える。
@@ -50,11 +52,19 @@ export default function QrCodeManager() {
     }
   }, [targetUrl])
 
+  // 「コピーしました」表示の自動リセット。copied を key にし、cleanup で確実にタイマーを解除する
+  // （コピー後 COPIED_RESET_MS 以内に別タブへ切り替えても、アンマウント済みへの setState を起こさない）。
+  useEffect(() => {
+    if (!copied) return
+    const id = window.setTimeout(() => setCopied(false), COPIED_RESET_MS)
+    return () => window.clearTimeout(id)
+  }, [copied])
+
   const handleCopy = async (): Promise<void> => {
     try {
       await navigator.clipboard.writeText(targetUrl)
       setCopied(true)
-      window.setTimeout(() => setCopied(false), 2000)
+      setError('') // 直前の失敗メッセージを消す（成功と失敗の同時表示を防ぐ）
     } catch (e) {
       console.error('URLのコピーに失敗しました:', e)
       setError('URLのコピーに失敗しました。手動でURLを選択してください。')

@@ -7,6 +7,7 @@ import DecorationManager from '@/components/admin/DecorationManager'
 import CanopyLayersManager from '@/components/admin/CanopyLayersManager'
 import QrCodeManager from '@/components/admin/QrCodeManager'
 import VisionMonitor from '@/components/admin/VisionMonitor'
+import DeclarationsPerHour from '@/components/admin/DeclarationsPerHour'
 import styles from './page.module.scss'
 
 // localStorage に保存する認証フラグのキー。リロード後も認証を維持するために使う。
@@ -182,7 +183,10 @@ export default function AdminPage() {
           ) : tab === 'qrcode' ? (
             <QrCodeManager />
           ) : (
-            <VisionMonitor />
+            <>
+              <VisionMonitor />
+              <DeclarationsPerHour />
+            </>
           )}
         </div>
       </main>

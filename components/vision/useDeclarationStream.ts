@@ -24,7 +24,8 @@ type VisionJob =
 
 // 戻り値：演出ジョブをキューに積む関数群。
 type DeclarationStream = {
-  enqueueDeclaration: (text: string, onAbsorbed?: (drained: boolean) => void) => void
+  // enqueueDeclaration は「積めたか」を返す（上限超過ドロップ時 false）。呼び出し側が吸収待ち件数を数えるため。
+  enqueueDeclaration: (text: string, onAbsorbed?: (drained: boolean) => void) => boolean
   enqueueMilestone: (stage: number, count: number) => void
   enqueueBloom: () => void
   enqueueGrowth: (apply: () => void) => void
@@ -88,8 +89,10 @@ export function useDeclarationStream(
       playingRef.current = false
       if (unmountedRef.current) return
       // 宣言の吸収が終わった瞬間にカウンターを1件進める（#67）。
-      // drained（キューが空＝バースト末尾）を渡し、page 側で取りこぼし分を実数へスナップできるようにする。
-      if (job.type === 'declaration') job.onAbsorbed?.(queueRef.current.length === 0)
+      // drained（残りキューに宣言ジョブが無い＝宣言バーストの末尾）を渡し、page 側で取りこぼし分を実数へスナップできるようにする。
+      // growth/milestone/bloom ジョブは対象外にする（宣言Aの再生中に growth が積まれても A を末尾扱いにするため）。
+      if (job.type === 'declaration')
+        job.onAbsorbed?.(queueRef.current.every((j) => j.type !== 'declaration'))
       const next = queueRef.current[0]
       if (next === undefined) return // 次が無ければ待機（新着が来たら即時再生）。
       // 宣言→宣言は通常の“間”。マイルストーン/満開が絡む境目は短い間で詰めて因果を密に見せる。
@@ -115,17 +118,18 @@ export function useDeclarationStream(
   }, [drain])
 
   const enqueueDeclaration = useCallback(
-    (text: string, onAbsorbed?: (drained: boolean) => void): void => {
-      if (unmountedRef.current) return
+    (text: string, onAbsorbed?: (drained: boolean) => void): boolean => {
+      if (unmountedRef.current) return false
       // 上限超過は捨てる（無音で打ち切らず可視化する）。マイルストーン/満開はこの上限の対象外（取りこぼさない）。
       if (queueRef.current.length >= DECLARATION_MAX_QUEUE) {
         console.warn(
           `[vision] 宣言演出キューが上限(${DECLARATION_MAX_QUEUE})に達したため1件スキップしました`
         )
-        return
+        return false
       }
       queueRef.current.push({ type: 'declaration', text, onAbsorbed })
       drainRef.current()
+      return true
     },
     []
   )

@@ -50,6 +50,9 @@ export default function VisionPage() {
   const [displayedCount, setDisplayedCount] = useState(0)
   // 最新の目標件数（onValue の isVisible 件数）。吸収完了コールバック内で上限クランプ・スナップに使う。
   const countTargetRef = useRef(0)
+  // 吸収待ちの宣言数（キュー投入〜吸収完了）。0 のあいだは演出が進行していないので目標値へ即追従してよい（#67）。
+  // これで child_added を伴わない増加（管理画面の「再表示」＝child_changed）にもカウンターが追従する。
+  const pendingAbsorbRef = useRef(0)
   // 表示中の木の成長段階（#57）。件数から算出する目標段階とは分け、宣言の吸収が終わってから
   // キュー経由で1段階ずつ進める（発光トランジションで差し替え）。起動時は現在件数の段階を即適用する。
   const [displayedGrowth, setDisplayedGrowth] = useState<GrowthLevel>(0)
@@ -129,10 +132,10 @@ export default function VisionPage() {
           setDisplayedCount(visible)
           initialLoadedRef.current = true
         } else {
-          // 目標件数が「減少」したとき（管理画面での非表示化など）はカウンターを即クランプダウンする（#67）。
-          // 減少は「吸収」の対象ではないため演出せず即反映。増加は吸収完了コールバック側で1件ずつ進めるので、
-          // ここで dc を超えて引き上げない（min で据え置き）。
-          setDisplayedCount((dc) => Math.min(dc, visible))
+          // 吸収待ちが無いときは目標値へ即追従する（#67）。
+          // 非表示化＝減少・再表示（child_changed で child_added が来ない）＝増加のどちらも「吸収」の対象外のため即反映。
+          // 吸収待ちがあるあいだは増加を吸収完了コールバック側に任せ、減少のみ即クランプする。
+          setDisplayedCount((dc) => (pendingAbsorbRef.current === 0 ? visible : Math.min(dc, visible)))
         }
       },
       (error) => {
@@ -149,12 +152,15 @@ export default function VisionPage() {
         const d = snapshot.val() as Omit<Declaration, 'id'> | null
         if (d && d.isVisible && typeof d.text === 'string') {
           // 吸収完了ごとにカウンターを1件進める（#67）。目標件数を超えないようクランプし、
-          // drained（バースト末尾）ではドロップ分も含め実数へスナップして最終値を必ず一致させる。
-          enqueueDeclaration(d.text, (drained) => {
+          // drained（宣言バーストの末尾）ではドロップ分も含め実数へスナップして最終値を必ず一致させる。
+          const enqueued = enqueueDeclaration(d.text, (drained) => {
+            pendingAbsorbRef.current = drained ? 0 : Math.max(0, pendingAbsorbRef.current - 1)
             setDisplayedCount((dc) =>
               drained ? countTargetRef.current : Math.min(dc + 1, countTargetRef.current)
             )
           })
+          // 実際に積めた分だけ吸収待ちを数える（上限超過ドロップは onAbsorbed が呼ばれないため加算しない）。
+          if (enqueued) pendingAbsorbRef.current++
         }
       },
       (error) => {
